@@ -82,7 +82,7 @@ model Product {
   updatedAt         DateTime @updatedAt
 
   // Relations
-  category          Category
+  category          Category @relation(fields: [categoryId], references: [id])
   pricelistItems   PricelistItem[]
   rentalItems      RentalItem[]
   productImages    ProductImage[]
@@ -145,8 +145,8 @@ model PricelistItem {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  pricelist Pricelist
-  product   Product
+  pricelist Pricelist @relation(fields: [pricelistId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
 
   @@unique([pricelistId, productId, rentalType])
 
@@ -178,7 +178,7 @@ model Rental {
   updatedAt         DateTime      @updatedAt
 
   // Relations
-  customer          User
+  customer          User          @relation(fields: [customerId], references: [id])
   items             RentalItem[]
   deliveries        Delivery[]
   payments          Payment[]
@@ -208,8 +208,8 @@ model RentalItem {
   createdAt  DateTime @default(now())
 
   // Relations
-  rental  Rental
-  product Product
+  rental  Rental  @relation(fields: [rentalId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 
   @@map("rental_items")
 }
@@ -230,7 +230,7 @@ model Delivery {
   updatedAt   DateTime      @updatedAt
 
   // Relations
-  rental Rental
+  rental Rental @relation(fields: [rentalId], references: [id])
 
   @@map("deliveries")
 }
@@ -263,8 +263,8 @@ model Payment {
   updatedAt     DateTime      @updatedAt
 
   // Relations
-  rental   Rental
-  customer User
+  rental   Rental @relation(fields: [rentalId], references: [id])
+  customer User   @relation(fields: [customerId], references: [id])
 
   @@map("payments")
 }
@@ -305,8 +305,8 @@ model Invoice {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  rental   Rental
-  customer User
+  rental   Rental @relation(fields: [rentalId], references: [id])
+  customer User   @relation(fields: [customerId], references: [id])
 
   @@map("invoices")
 }
@@ -333,8 +333,8 @@ model Notification {
   channel   NotificationChannel @default(EMAIL)
 
   // Relations
-  user   User
-  rental Rental?
+  user   User   @relation(fields: [userId], references: [id])
+  rental Rental? @relation(fields: [rentalId], references: [id])
 
   @@map("notifications")
 }

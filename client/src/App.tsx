@@ -9,6 +9,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Layout from './components/Layout/Layout';
 import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -108,96 +109,98 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
-        <AuthProvider>
-          <CartProvider>
-            <Router>
-              <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                <Navbar />
-                <Box sx={{ display: 'flex', flex: 1 }}>
-                  <Sidebar />
-                  <Layout>
-                    <Routes>
-                      {/* Public Routes */}
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/products" element={<ProductsPage />} />
-                      <Route path="/products/:id" element={<ProductDetailPage />} />
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/register" element={<RegisterPage />} />
+    <ErrorBoundary>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <AuthProvider>
+            <CartProvider>
+              <Router>
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                  <Navbar />
+                  <Box sx={{ display: 'flex', flex: 1 }}>
+                    <Sidebar />
+                    <Layout>
+                      <Routes>
+                        {/* Public Routes */}
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/products" element={<ProductsPage />} />
+                        <Route path="/products/:id" element={<ProductDetailPage />} />
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route path="/register" element={<RegisterPage />} />
 
-                      {/* Protected Routes */}
-                      <Route
-                        path="/dashboard"
-                        element={
-                          <ProtectedRoute>
-                            <DashboardPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/rentals"
-                        element={
-                          <ProtectedRoute>
-                            <RentalsPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/rentals/:id"
-                        element={
-                          <ProtectedRoute>
-                            <RentalDetailPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/profile"
-                        element={
-                          <ProtectedRoute>
-                            <ProfilePage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/cart"
-                        element={
-                          <ProtectedRoute>
-                            <CartPage />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/checkout"
-                        element={
-                          <ProtectedRoute>
-                            <CheckoutPage />
-                          </ProtectedRoute>
-                        }
-                      />
+                        {/* Protected Routes */}
+                        <Route
+                          path="/dashboard"
+                          element={
+                            <ProtectedRoute>
+                              <DashboardPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/rentals"
+                          element={
+                            <ProtectedRoute>
+                              <RentalsPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/rentals/:id"
+                          element={
+                            <ProtectedRoute>
+                              <RentalDetailPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/profile"
+                          element={
+                            <ProtectedRoute>
+                              <ProfilePage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/cart"
+                          element={
+                            <ProtectedRoute>
+                              <CartPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/checkout"
+                          element={
+                            <ProtectedRoute>
+                              <CheckoutPage />
+                            </ProtectedRoute>
+                          }
+                        />
 
-                      {/* Admin Routes */}
-                      <Route
-                        path="/admin/*"
-                        element={
-                          <AdminRoute>
-                            <div>Admin Panel (Coming Soon)</div>
-                          </AdminRoute>
-                        }
-                      />
+                        {/* Admin Routes */}
+                        <Route
+                          path="/admin/*"
+                          element={
+                            <AdminRoute>
+                              <div>Admin Panel (Coming Soon)</div>
+                            </AdminRoute>
+                          }
+                        />
 
-                      {/* 404 Route */}
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Layout>
+                        {/* 404 Route */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                      </Routes>
+                    </Layout>
+                  </Box>
                 </Box>
-              </Box>
-            </Router>
-          </CartProvider>
-        </AuthProvider>
-      </LocalizationProvider>
-    </ThemeProvider>
+              </Router>
+            </CartProvider>
+          </AuthProvider>
+        </LocalizationProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
