@@ -24,7 +24,7 @@ const RegisterPage: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'CUSTOMER' as 'CUSTOMER' | 'END_USER' // Added role state
+    role: 'CUSTOMER' as 'CUSTOMER' | 'ADMIN' // Updated role types
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ const RegisterPage: React.FC = () => {
   const handleRoleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      role: event.target.checked ? 'END_USER' : 'CUSTOMER'
+      role: event.target.checked ? 'ADMIN' : 'CUSTOMER' // Updated to ADMIN
     });
   };
 
@@ -142,7 +142,7 @@ const RegisterPage: React.FC = () => {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={formData.role === 'END_USER'}
+                    checked={formData.role === 'ADMIN'}
                     onChange={handleRoleToggle}
                     color="primary"
                     size="medium"
@@ -152,8 +152,8 @@ const RegisterPage: React.FC = () => {
               />
               <Chip 
                 label="Staff Member" 
-                color={formData.role === 'END_USER' ? 'primary' : 'default'}
-                variant={formData.role === 'END_USER' ? 'filled' : 'outlined'}
+                color={formData.role === 'ADMIN' ? 'primary' : 'default'} // Updated to ADMIN
+                variant={formData.role === 'ADMIN' ? 'filled' : 'outlined'} // Updated to ADMIN
                 sx={{ 
                   minWidth: 120,
                   height: 40,
@@ -165,7 +165,7 @@ const RegisterPage: React.FC = () => {
                   },
                   transition: 'all 0.2s ease-in-out'
                 }}
-                onClick={() => setFormData({...formData, role: 'END_USER'})}
+                onClick={() => setFormData({...formData, role: 'ADMIN'})}
               />
             </Stack>
             <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 2, px: 2, lineHeight: 1.4 }}>

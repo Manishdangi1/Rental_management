@@ -53,6 +53,31 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Test authentication endpoint
+app.get('/api/test-auth', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ 
+      error: 'No authorization header',
+      message: 'Authorization header is required'
+    });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ 
+      error: 'Invalid token format',
+      message: 'Token must be in format: Bearer <token>'
+    });
+  }
+  
+  res.json({ 
+    message: 'Token received',
+    tokenLength: token.length,
+    hasToken: !!token
+  });
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);

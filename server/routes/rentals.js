@@ -108,19 +108,22 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new rental
 router.post('/', [
   authenticateToken,
+  body('orderNumber').isString().notEmpty(),
   body('customerId').isString().notEmpty(),
-  body('startDate').isISO8601(),
-  body('endDate').isISO8601(),
-  body('totalAmount').isFloat({ min: 0 }),
-  body('securityDeposit').optional().isFloat({ min: 0 }),
+  body('customerName').isString().notEmpty(),
+  body('status').isIn(['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
   body('items').isArray().notEmpty(),
-  body('pickupAddress').optional().isString(),
-  body('returnAddress').optional().isString(),
+  body('subtotal').isFloat({ min: 0 }),
+  body('tax').isFloat({ min: 0 }),
+  body('totalAmount').isFloat({ min: 0 }),
   body('notes').optional().isString()
 ], async (req, res) => {
   try {
+    console.log('Received rental creation request:', JSON.stringify(req.body, null, 2));
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({ 
         error: 'Validation failed',
         details: errors.array() 
@@ -128,16 +131,18 @@ router.post('/', [
     }
     
     const { 
+      orderNumber,
       customerId, 
-      startDate, 
-      endDate, 
-      totalAmount, 
-      securityDeposit = 0,
+      customerName,
+      status,
       items, 
-      pickupAddress, 
-      returnAddress, 
+      subtotal,
+      tax,
+      totalAmount,
       notes 
     } = req.body;
+    
+    console.log('Extracted data:', { orderNumber, customerId, customerName, status, subtotal, tax, totalAmount, itemsCount: items?.length });
     
     // Validate that the user is creating a rental for themselves or has admin privileges
     if (req.user.id !== customerId && req.user.role !== 'ADMIN') {
@@ -146,93 +151,46 @@ router.post('/', [
         message: 'You can only create rentals for yourself' 
       });
     }
-    
-    // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (start >= end) {
+
+    // Check if order number already exists
+    const existingOrder = await prisma.rental.findUnique({
+      where: { orderNumber }
+    });
+
+    if (existingOrder) {
       return res.status(400).json({ 
-        error: 'Invalid dates',
-        message: 'End date must be after start date' 
+        error: 'Order number already exists',
+        message: 'Please generate a new order number' 
       });
     }
     
-    // Check product availability for the selected dates
-    for (const item of items) {
-      const existingRentals = await prisma.rental.findMany({
-        where: {
-          status: {
-            in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS']
-          },
-          items: {
-            some: {
-              productId: item.productId
-            }
-          },
-          OR: [
-            {
-              startDate: { lte: end },
-              endDate: { gte: start }
-            }
-          ]
-        },
-        include: {
-          items: {
-            where: {
-              productId: item.productId
-            }
-          }
-        }
-      });
-      
-      // Calculate total quantity already rented for this product during the period
-      let totalRented = 0;
-      existingRentals.forEach(rental => {
-        rental.items.forEach(rentalItem => {
-          totalRented += rentalItem.quantity;
-        });
-      });
-      
-      // Check if requested quantity is available
-      const product = await prisma.product.findUnique({
-        where: { id: item.productId }
-      });
-      
-      if (!product) {
-        return res.status(400).json({ 
-          error: 'Product not found',
-          message: `Product with ID ${item.productId} does not exist` 
-        });
-      }
-      
-      if (product.availableQuantity - totalRented < item.quantity) {
-        return res.status(400).json({ 
-          error: 'Insufficient quantity',
-          message: `Only ${Math.max(0, product.availableQuantity - totalRented)} units of ${product.name} are available for the selected dates` 
-        });
-      }
-    }
-    
+    // Create the rental order
     const rental = await prisma.rental.create({
       data: {
+        orderNumber,
         customerId,
-        startDate: start,
-        endDate: end,
+        customerName,
+        status,
+        subtotal,
+        tax,
         totalAmount,
-        securityDeposit,
-        pickupAddress,
-        returnAddress,
         notes,
         items: {
           create: items.map(item => ({
             productId: item.productId,
+            productName: item.productName,
+            startDate: item.startDate ? new Date(item.startDate) : null,
+            endDate: item.endDate ? new Date(item.endDate) : null,
             quantity: item.quantity,
+            rentalType: item.rentalType,
             unitPrice: item.unitPrice,
-            totalPrice: item.totalPrice
+            totalPrice: item.totalPrice,
+            notes: item.notes
           }))
         }
       },
       include: {
+        items: true,
         customer: {
           select: {
             id: true,
@@ -240,32 +198,19 @@ router.post('/', [
             lastName: true,
             email: true
           }
-        },
-        items: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                sku: true,
-                description: true
-              }
-            }
-          }
         }
       }
     });
     
+    console.log('Rental created successfully:', rental.id);
+    
     res.status(201).json({
-      message: 'Rental created successfully',
+      message: 'Rental order created successfully',
       rental
     });
   } catch (error) {
     console.error('Error creating rental:', error);
-    res.status(500).json({ 
-      error: 'Failed to create rental',
-      message: 'Internal server error' 
-    });
+    res.status(500).json({ error: 'Failed to create rental order' });
   }
 });
 
@@ -300,6 +245,106 @@ router.patch('/:id/status', [
   } catch (error) {
     console.error('Error updating rental status:', error);
     res.status(500).json({ error: 'Failed to update rental status' });
+  }
+});
+
+// Update rental order
+router.put('/:id', [
+  authenticateToken,
+  body('orderNumber').optional().isString(),
+  body('customerName').optional().isString(),
+  body('status').optional().isIn(['DRAFT', 'PENDING', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+  body('items').optional().isArray(),
+  body('subtotal').optional().isFloat({ min: 0 }),
+  body('tax').optional().isFloat({ min: 0 }),
+  body('totalAmount').optional().isFloat({ min: 0 }),
+  body('notes').optional().isString()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array() 
+      });
+    }
+    
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Check if rental exists
+    const existingRental = await prisma.rental.findUnique({
+      where: { id },
+      include: { items: true }
+    });
+    
+    if (!existingRental) {
+      return res.status(404).json({ error: 'Rental order not found' });
+    }
+    
+    // Check if order number is being changed and if it already exists
+    if (updateData.orderNumber && updateData.orderNumber !== existingRental.orderNumber) {
+      const duplicateOrder = await prisma.rental.findUnique({
+        where: { orderNumber: updateData.orderNumber }
+      });
+      
+      if (duplicateOrder) {
+        return res.status(400).json({ 
+          error: 'Order number already exists',
+          message: 'Please use a different order number' 
+        });
+      }
+    }
+    
+    // Update the rental order
+    const updatedRental = await prisma.rental.update({
+      where: { id },
+      data: {
+        orderNumber: updateData.orderNumber,
+        customerName: updateData.customerName,
+        status: updateData.status,
+        subtotal: updateData.subtotal,
+        tax: updateData.tax,
+        totalAmount: updateData.totalAmount,
+        notes: updateData.notes,
+        // Update items if provided
+        ...(updateData.items && {
+          items: {
+            deleteMany: {}, // Delete all existing items
+            create: updateData.items.map(item => ({
+              productId: item.productId,
+              productName: item.productName,
+              startDate: item.startDate ? new Date(item.startDate) : null,
+              endDate: item.endDate ? new Date(item.endDate) : null,
+              quantity: item.quantity,
+              rentalType: item.rentalType,
+              unitPrice: item.unitPrice,
+              totalPrice: item.totalPrice,
+              notes: item.notes
+            }))
+          }
+        })
+      },
+      include: {
+        items: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+    
+    res.json({
+      message: 'Rental order updated successfully',
+      rental: updatedRental
+    });
+  } catch (error) {
+    console.error('Error updating rental:', error);
+    res.status(500).json({ error: 'Failed to update rental order' });
   }
 });
 

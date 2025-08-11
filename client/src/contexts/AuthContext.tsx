@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import api from '../config/axios';
 
 // Types
 export interface User {
@@ -129,10 +129,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Set up axios defaults
   useEffect(() => {
     if (state.token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
       localStorage.setItem('token', state.token);
     } else {
-      delete axios.defaults.headers.common['Authorization'];
+      delete api.defaults.headers.common['Authorization'];
       localStorage.removeItem('token');
     }
   }, [state.token]);
@@ -141,22 +141,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('token');
+      console.log('AuthContext: Checking auth with token:', token ? 'exists' : 'missing');
+      
       if (token) {
         try {
           dispatch({ type: 'SET_LOADING', payload: true });
           
           // Set default authorization header for future requests
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
-          const response = await axios.get('/api/auth/profile');
+          const response = await api.get('/auth/profile');
+          console.log('AuthContext: Profile response:', response.data);
+          
           dispatch({
             type: 'AUTH_SUCCESS',
             payload: { user: response.data.user, token },
           });
         } catch (error) {
-          console.error('Auth check failed:', error);
+          console.error('AuthContext: Auth check failed:', error);
           localStorage.removeItem('token');
-          delete axios.defaults.headers.common['Authorization'];
+          delete api.defaults.headers.common['Authorization'];
           dispatch({ type: 'AUTH_LOGOUT' });
         } finally {
           dispatch({ type: 'SET_LOADING', payload: false });
@@ -171,8 +175,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string, role?: 'CUSTOMER' | 'ADMIN') => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await axios.post('/api/auth/login', { email, password, role });
+      console.log('AuthContext: Attempting login for:', email, 'with role:', role);
+      
+      const response = await api.post('/auth/login', { email, password, role });
       const { user, token } = response.data;
+      
+      console.log('AuthContext: Login response:', { user, token: token ? 'exists' : 'missing' });
       
       // Validate that the user's actual role matches the expected role (if specified)
       if (role && user.role !== role) {
@@ -183,15 +191,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Store token in localStorage
       localStorage.setItem('token', token);
+      console.log('AuthContext: Token stored in localStorage');
       
       // Set default authorization header for future requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: { user, token },
       });
     } catch (error: any) {
+      console.error('AuthContext: Login error:', error);
       const errorMessage = error.response?.data?.message || 'Login failed';
       dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
       throw new Error(errorMessage);
@@ -202,14 +212,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (userData: RegisterData) => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await api.post('/auth/register', userData);
       const { user, token } = response.data;
       
       // Store token in localStorage
       localStorage.setItem('token', token);
       
       // Set default authorization header for future requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       dispatch({
         type: 'AUTH_SUCCESS',
@@ -228,7 +238,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('token');
     
     // Remove authorization header
-    delete axios.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common['Authorization'];
     
     dispatch({ type: 'AUTH_LOGOUT' });
     
@@ -239,7 +249,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Update profile function
   const updateProfile = async (userData: Partial<User>) => {
     try {
-      const response = await axios.put('/api/auth/profile', userData);
+      const response = await api.put('/auth/profile', userData);
       dispatch({ type: 'UPDATE_USER', payload: response.data.user });
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Profile update failed';

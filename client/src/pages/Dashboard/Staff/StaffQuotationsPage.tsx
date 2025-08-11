@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, LinearProgress, Chip, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
+import api from '../../../config/axios';
 import StaffNavigation from '../../../components/Layout/StaffNavigation';
 
 const StaffQuotationsPage: React.FC = () => {
@@ -14,14 +14,14 @@ const StaffQuotationsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get('/api/reports/quotations?limit=50');
+        const res = await api.get('/reports/quotations?limit=50');
         if (!isMounted) return;
         setItems(res.data || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load quotations');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();

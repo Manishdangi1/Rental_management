@@ -25,7 +25,7 @@ import {
   Assessment,
   ListAlt
 } from '@mui/icons-material';
-import axios from 'axios';
+import api from '../../config/axios';
 
 interface RentalStatsResponse {
   totalRentals: number;
@@ -83,11 +83,11 @@ const EndUserDashboard: React.FC = () => {
       setError(null);
       try {
         const [statsRes, prodRes, catRes, custRes, revRes] = await Promise.all([
-          axios.get<RentalStatsResponse>('/api/reports/rental-stats'),
-          axios.get<ProductPopularityItem[]>('/api/reports/product-popularity'),
-          axios.get<CategoryPopularityItem[]>('/api/reports/category-popularity'),
-          axios.get<TopCustomerItem[]>('/api/reports/top-customers'),
-          axios.get<RevenueTrendItem[]>('/api/reports/revenue-trend?months=6'),
+          api.get<RentalStatsResponse>('/reports/rental-stats'),
+          api.get<ProductPopularityItem[]>('/reports/product-popularity'),
+          api.get<CategoryPopularityItem[]>('/reports/category-popularity'),
+          api.get<TopCustomerItem[]>('/reports/top-customers'),
+          api.get<RevenueTrendItem[]>('/reports/revenue-trend?months=6'),
         ]);
         if (!isMounted) return;
         setStats(statsRes.data);
@@ -99,7 +99,7 @@ const EndUserDashboard: React.FC = () => {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load dashboard data');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     fetchData();
@@ -400,14 +400,14 @@ const RentalsList: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get('/api/rentals?limit=10');
+        const res = await api.get('/rentals?limit=10');
         if (!isMounted) return;
         setItems(res.data.rentals || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load rentals');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();
@@ -450,14 +450,14 @@ const QuotationsList: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get('/api/reports/quotations?limit=20');
+        const res = await api.get('/reports/quotations?limit=20');
         if (!isMounted) return;
         setItems(res.data || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load quotations');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();

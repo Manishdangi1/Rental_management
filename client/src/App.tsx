@@ -24,6 +24,8 @@ import RentalsPage from './pages/Rentals/RentalsPage';
 import RentalDetailPage from './pages/Rentals/RentalDetailPage';
 import RentalProductSelection from './pages/Rentals/RentalProductSelection';
 import RentalCheckout from './pages/Rentals/RentalCheckout';
+import RentalOrderForm from './pages/Rentals/RentalOrderForm';
+import RentalNavigation from './components/Layout/RentalNavigation';
 import ProfilePage from './pages/Profile/ProfilePage';
 import CartPage from './pages/Cart/CartPage';
 import CheckoutPage from './pages/Checkout/CheckoutPage';
@@ -232,6 +234,28 @@ function App() {
                           <>
                             <Navbar />
                             <RentalCheckout />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rentals/order-form"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <RentalOrderForm />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rentals/navigation"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <RentalNavigation />
                           </>
                         </AuthGuard>
                       }

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Grid, Card, CardContent, Typography, Avatar, List, ListItem, ListItemText, Divider, Stack, LinearProgress, Chip, Alert } from '@mui/material';
-import { LocalShipping, Inventory, TrendingUp, Assessment } from '@mui/icons-material';
-import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { Box, Grid, Card, CardContent, Typography, Avatar, List, ListItem, ListItemText, Divider, Stack, LinearProgress, Chip, Alert, Button } from '@mui/material';
+import { LocalShipping, Inventory, TrendingUp, Assessment, Add } from '@mui/icons-material';
+import { useLocation, useNavigate } from 'react-router-dom';
+import api from '../../../config/axios';
 import StaffNavigation from '../../../components/Layout/StaffNavigation';
 
 interface RentalStatsResponse {
@@ -35,6 +35,7 @@ const StaffDashboardOverview: React.FC = () => {
   const [topProducts, setTopProducts] = useState<ProductPopularityItem[]>([]);
   const [topCustomers, setTopCustomers] = useState<TopCustomerItem[]>([]);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const currency = useMemo(() => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }), []);
 
@@ -45,9 +46,9 @@ const StaffDashboardOverview: React.FC = () => {
       setError(null);
       try {
         const [statsRes, prodRes, custRes] = await Promise.all([
-          axios.get<RentalStatsResponse>('/api/reports/rental-stats'),
-          axios.get<ProductPopularityItem[]>('/api/reports/product-popularity'),
-          axios.get<TopCustomerItem[]>('/api/reports/top-customers'),
+          api.get<RentalStatsResponse>('/reports/rental-stats'),
+          api.get<ProductPopularityItem[]>('/reports/product-popularity'),
+          api.get<TopCustomerItem[]>('/reports/top-customers'),
         ]);
         if (!isMounted) return;
         setStats(statsRes.data);
@@ -57,7 +58,7 @@ const StaffDashboardOverview: React.FC = () => {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load overview');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();
@@ -79,6 +80,59 @@ const StaffDashboardOverview: React.FC = () => {
       
       <Typography variant="h5" sx={{ mb: 2 }}>Dashboard Overview</Typography>
       {error && <Chip color="error" label={error} sx={{ mb: 2 }} />}
+      
+      {/* Quick Access Section */}
+      <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+        <Typography variant="h6" sx={{ mb: 2, color: '#1e293b' }}>
+          Quick Access - Rental Management
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => navigate('/rentals/navigation')}
+              startIcon={<LocalShipping />}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left' }}
+            >
+              Rental System
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => navigate('/rentals/order-form')}
+              startIcon={<Inventory />}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left' }}
+            >
+              Manage Orders
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => navigate('/rentals/new')}
+              startIcon={<Add />}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left' }}
+            >
+              New Rental
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => navigate('/dashboard/rentals')}
+              startIcon={<Assessment />}
+              sx={{ justifyContent: 'flex-start', textAlign: 'left' }}
+            >
+              Rental Reports
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
 
       <Grid container spacing={3} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={6} md={3}>

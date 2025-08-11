@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, LinearProgress, Chip, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
+import api from '../../../config/axios';
 import StaffNavigation from '../../../components/Layout/StaffNavigation';
 
 interface CategoryPopularityItem { categoryId: string; categoryName: string; totalQuantity: number; }
@@ -16,14 +16,14 @@ const StaffTopCategoriesPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get<CategoryPopularityItem[]>('/api/reports/category-popularity');
+        const res = await api.get<CategoryPopularityItem[]>('/reports/category-popularity');
         if (!isMounted) return;
         setItems(res.data || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load categories');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();

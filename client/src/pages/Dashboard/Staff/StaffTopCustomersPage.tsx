@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Card, CardContent, Typography, LinearProgress, Chip, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
+import api from '../../../config/axios';
 import StaffNavigation from '../../../components/Layout/StaffNavigation';
 
 interface TopCustomerItem { customerId: string; name: string; email: string; totalRevenue: number; rentalCount: number; }
@@ -17,14 +17,14 @@ const StaffTopCustomersPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get<TopCustomerItem[]>('/api/reports/top-customers');
+        const res = await api.get<TopCustomerItem[]>('/reports/top-customers');
         if (!isMounted) return;
         setItems(res.data || []);
       } catch (e: any) {
         if (!isMounted) return;
-        setError(e?.response?.data?.error || 'Failed to load top customers');
+        setError(e?.response?.data?.error || 'Failed to load customers');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();

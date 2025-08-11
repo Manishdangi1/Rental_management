@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, LinearProgress, Chip, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
+import api from '../../../config/axios';
 import StaffNavigation from '../../../components/Layout/StaffNavigation';
 
 interface ProductPopularityItem { productId: string; productName: string; sku: string; totalQuantity: number; rentalCount: number; }
@@ -16,14 +16,14 @@ const StaffTopProductsPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get<ProductPopularityItem[]>('/api/reports/product-popularity');
+        const res = await api.get<ProductPopularityItem[]>('/reports/product-popularity');
         if (!isMounted) return;
         setItems(res.data || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load products');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();

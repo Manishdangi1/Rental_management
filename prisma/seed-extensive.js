@@ -327,11 +327,15 @@ async function main() {
     const totalAmount = Math.floor(Math.random() * 1000) + 100;
     
     rentalData.push({
+      orderNumber: `RO-${Date.now()}-${String(i + 1).padStart(3, '0')}`,
       customerId: customer.id,
+      customerName: `${customer.firstName} ${customer.lastName}`,
       status,
       startDate,
       endDate,
       totalAmount,
+      subtotal: totalAmount,
+      tax: Math.floor(totalAmount * 0.08),
       securityDeposit: Math.floor(totalAmount * 0.2),
       pickupAddress: `${Math.floor(Math.random() * 9999)} ${customer.lastName} St, Tech City, TC 12345`,
       returnAddress: `${Math.floor(Math.random() * 9999)} ${customer.lastName} St, Tech City, TC 12345`,
@@ -372,7 +376,11 @@ async function main() {
           data: {
             rentalId: rental.id,
             productId: product.id,
+            productName: product.name,
+            startDate: rental.startDate,
+            endDate: rental.endDate,
             quantity,
+            rentalType: 'DAILY',
             unitPrice,
             totalPrice,
             notes: `Rented ${quantity}x ${product.name}`

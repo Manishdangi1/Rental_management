@@ -30,6 +30,7 @@ import {
   Home,
   Inventory,
   Assessment,
+  Add,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,10 +42,13 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { user, logout } = useAuth();
+  const { user, logout, loading, error } = useAuth();
   const { items } = useCart();
   
-  // Debug cart items
+  // Debug user and auth state
+  console.log('Navbar: User:', user);
+  console.log('Navbar: Loading:', loading);
+  console.log('Navbar: Error:', error);
   console.log('Navbar: Cart items:', items);
   console.log('Navbar: Cart items length:', items.length);
   
@@ -77,6 +81,9 @@ const Navbar: React.FC = () => {
   // Only show minimal navigation for mobile
   const mobileNavigationItems = [
     { text: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
+    { text: 'Rentals', path: '/rentals', icon: <LocalShipping /> },
+    { text: 'New Rental', path: '/rentals/new', icon: <Add /> },
+    { text: 'Order Form', path: '/rentals/order-form', icon: <Inventory /> },
   ];
 
   const renderMobileNavigation = () => (
@@ -176,7 +183,7 @@ const Navbar: React.FC = () => {
               },
               transition: 'all 0.2s ease-in-out',
             }}
-            onClick={() => navigate('/')}
+            onClick={() => user ? navigate('/dashboard') : navigate('/login')}
           >
             Rental Management
           </Typography>
@@ -204,6 +211,20 @@ const Navbar: React.FC = () => {
 
           {/* Right side items */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Show loading state */}
+            {loading && (
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                Loading...
+              </Typography>
+            )}
+            
+            {/* Show error state */}
+            {error && (
+              <Typography variant="body2" sx={{ color: '#ff6b6b', fontSize: '0.8rem' }}>
+                {error}
+              </Typography>
+            )}
+
             {/* Rental Cart - Only show if user is logged in */}
             {user && (
               <Tooltip title="Rental Cart" arrow>

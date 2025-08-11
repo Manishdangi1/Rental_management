@@ -92,7 +92,7 @@ const Sidebar: React.FC = () => {
     {
       title: 'Management',
       icon: <Settings />,
-      show: user?.role === 'ADMIN' || user?.role === 'STAFF',
+      show: user?.role === 'ADMIN',
       section: 'management',
       items: [
         { title: 'Users', path: '/admin/users' },

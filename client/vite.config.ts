@@ -6,11 +6,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    strictPort: false, // Allow fallback to other ports if 3000 is busy
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
       }
     }
   },

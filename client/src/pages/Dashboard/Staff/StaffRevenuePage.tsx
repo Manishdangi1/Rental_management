@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Card, CardContent, Typography, LinearProgress, Chip, List, ListItem, ListItemText } from '@mui/material';
-import axios from 'axios';
+import api from '../../../config/axios';
 import StaffNavigation from '../../../components/Layout/StaffNavigation';
 
 interface RevenueTrendItem { month: string; total: number; }
@@ -17,14 +17,14 @@ const StaffRevenuePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get<RevenueTrendItem[]>('/api/reports/revenue-trend?months=12');
+        const res = await api.get<RevenueTrendItem[]>('/reports/revenue-trend?months=12');
         if (!isMounted) return;
         setItems(res.data || []);
       } catch (e: any) {
         if (!isMounted) return;
         setError(e?.response?.data?.error || 'Failed to load revenue');
       } finally {
-        if (isMounted) setLoading(false);
+        if (!isMounted) setLoading(false);
       }
     };
     load();

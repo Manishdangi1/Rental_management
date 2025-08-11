@@ -164,12 +164,16 @@ enum RentalType {
 // Rental Orders
 model Rental {
   id                String        @id @default(cuid())
+  orderNumber       String        @unique // Unique order number like RO-123456-001
   customerId        String
-  status            RentalStatus  @default(PENDING)
-  startDate         DateTime
-  endDate           DateTime
-  totalAmount       Float
-  securityDeposit   Float?
+  customerName      String        // Customer name for display
+  status            RentalStatus  @default(DRAFT)
+  startDate         DateTime?     // Made optional since orders can start as DRAFT
+  endDate           DateTime?     // Made optional since orders can start as DRAFT
+  totalAmount       Float         @default(0)
+  subtotal          Float         @default(0) // Subtotal before tax
+  tax               Float         @default(0) // Tax amount
+  securityDeposit   Float?        @default(0)
   lateFees          Float?        @default(0)
   notes             String?
   pickupAddress     String?
@@ -189,6 +193,7 @@ model Rental {
 }
 
 enum RentalStatus {
+  DRAFT
   PENDING
   CONFIRMED
   IN_PROGRESS
@@ -201,7 +206,11 @@ model RentalItem {
   id         String   @id @default(cuid())
   rentalId   String
   productId  String
+  productName String  // Product name for display
+  startDate  DateTime? // Individual item start date
+  endDate    DateTime? // Individual item end date
   quantity   Int
+  rentalType String   // HOURLY, DAILY, WEEKLY, MONTHLY
   unitPrice  Float
   totalPrice Float
   notes      String?
