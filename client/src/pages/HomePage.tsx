@@ -11,7 +11,6 @@ import {
   Container,
   Paper,
   Chip,
-  Rating,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -266,12 +265,6 @@ const HomePage: React.FC = () => {
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                     <Chip label={product.category?.name || 'Uncategorized'} size="small" color="primary" />
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Rating value={4.8} precision={0.1} size="small" readOnly />
-                      <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                        (127)
-                      </Typography>
-                    </Box>
                   </Box>
                   <Typography gutterBottom variant="h6" component="h3">
                     {product.name}

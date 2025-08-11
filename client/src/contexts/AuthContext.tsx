@@ -143,6 +143,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (token) {
         try {
           dispatch({ type: 'SET_LOADING', payload: true });
+          
+          // Set default authorization header for future requests
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
           const response = await axios.get('/api/auth/profile');
           dispatch({
             type: 'AUTH_SUCCESS',
@@ -151,6 +155,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (error) {
           console.error('Auth check failed:', error);
           localStorage.removeItem('token');
+          delete axios.defaults.headers.common['Authorization'];
           dispatch({ type: 'AUTH_LOGOUT' });
         } finally {
           dispatch({ type: 'SET_LOADING', payload: false });
@@ -166,12 +171,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await axios.post('/api/auth/login', { email, password });
+      const { user, token } = response.data;
+      
+      // Store token in localStorage
+      localStorage.setItem('token', token);
+      
+      // Set default authorization header for future requests
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       dispatch({
         type: 'AUTH_SUCCESS',
-        payload: {
-          user: response.data.user,
-          token: response.data.token,
-        },
+        payload: { user, token },
       });
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Login failed';
@@ -185,12 +195,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await axios.post('/api/auth/register', userData);
+      const { user, token } = response.data;
+      
+      // Store token in localStorage
+      localStorage.setItem('token', token);
+      
+      // Set default authorization header for future requests
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       dispatch({
         type: 'AUTH_SUCCESS',
-        payload: {
-          user: response.data.user,
-          token: response.data.token,
-        },
+        payload: { user, token },
       });
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Registration failed';
@@ -201,6 +216,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Logout function
   const logout = () => {
+    // Remove token from localStorage
+    localStorage.removeItem('token');
+    
+    // Remove authorization header
+    delete axios.defaults.headers.common['Authorization'];
+    
     dispatch({ type: 'AUTH_LOGOUT' });
   };
 
