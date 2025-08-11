@@ -16,11 +16,11 @@ import { Delete as DeleteIcon, Add as AddIcon, Remove as RemoveIcon } from '@mui
 import { useCart } from '../../contexts/CartContext';
 
 const CartPage: React.FC = () => {
-  const { items, removeItem, updateItemQuantity, clearCart } = useCart();
+  const { items, removeRentalItem, updateRentalItemQuantity, clearRentalCart } = useCart();
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity > 0) {
-      updateItemQuantity(itemId, newQuantity);
+      updateRentalItemQuantity(itemId, newQuantity);
     }
   };
 
@@ -40,10 +40,10 @@ const CartPage: React.FC = () => {
     return (
       <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Your Cart is Empty
+          Your Rental Cart is Empty
         </Typography>
         <Typography variant="body1" color="textSecondary" paragraph>
-          Looks like you haven't added any items to your cart yet.
+          Looks like you haven't added any rental items to your cart yet.
         </Typography>
         <Button
           component={Link}
@@ -52,7 +52,7 @@ const CartPage: React.FC = () => {
           color="primary"
           size="large"
         >
-          Start Shopping
+          Browse Rental Items
         </Button>
       </Container>
     );
@@ -61,7 +61,7 @@ const CartPage: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Shopping Cart
+        Rental Cart
       </Typography>
 
       <Grid container spacing={4}>
@@ -83,10 +83,19 @@ const CartPage: React.FC = () => {
                       {item.name}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Daily Rate: ${item.unitPrice}
+                      {item.rentalType === 'HOURLY' ? 'Hourly Rate' : 
+                       item.rentalType === 'DAILY' ? 'Daily Rate' :
+                       item.rentalType === 'WEEKLY' ? 'Weekly Rate' :
+                       item.rentalType === 'MONTHLY' ? 'Monthly Rate' : 'Yearly Rate'}: ${item.unitPrice}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      Rental Type: {item.rentalType}
+                      Rental Period: {item.rentalType}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      Duration: {Math.ceil((item.endDate.getTime() - item.startDate.getTime()) / (1000 * 60 * 60 * 24))} days
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      From: {item.startDate.toLocaleDateString()} - To: {item.endDate.toLocaleDateString()}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} sm={3}>
@@ -104,7 +113,7 @@ const CartPage: React.FC = () => {
                         onChange={(e) => {
                           const value = parseInt(e.target.value);
                           if (!isNaN(value) && value > 0) {
-                            updateItemQuantity(item.id, value);
+                            updateRentalItemQuantity(item.id, value);
                           }
                         }}
                         sx={{ width: 60, textAlign: 'center' }}
@@ -126,7 +135,7 @@ const CartPage: React.FC = () => {
                   <Grid item xs={12} sm={1}>
                     <IconButton
                       color="error"
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeRentalItem(item.id)}
                     >
                       <DeleteIcon />
                     </IconButton>
@@ -140,7 +149,7 @@ const CartPage: React.FC = () => {
             <Button
               variant="outlined"
               color="secondary"
-              onClick={clearCart}
+              onClick={clearRentalCart}
             >
               Clear Cart
             </Button>
@@ -150,7 +159,7 @@ const CartPage: React.FC = () => {
               variant="outlined"
               color="primary"
             >
-              Continue Shopping
+              Continue Browsing
             </Button>
           </Box>
         </Grid>
@@ -159,13 +168,17 @@ const CartPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Order Summary
+                Rental Summary
               </Typography>
               
               <Box sx={{ my: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography>Subtotal ({items.length} items)</Typography>
+                  <Typography>Rental Subtotal ({items.length} items)</Typography>
                   <Typography>${calculateSubtotal().toFixed(2)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography>Security Deposit (20%)</Typography>
+                  <Typography>${(calculateSubtotal() * 0.2).toFixed(2)}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Tax (8%)</Typography>
@@ -175,7 +188,7 @@ const CartPage: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                   <Typography variant="h6">Total</Typography>
                   <Typography variant="h6" color="primary">
-                    ${calculateTotal().toFixed(2)}
+                    ${(calculateSubtotal() + calculateSubtotal() * 0.2 + calculateTax()).toFixed(2)}
                   </Typography>
                 </Box>
               </Box>
@@ -189,7 +202,7 @@ const CartPage: React.FC = () => {
                 size="large"
                 disabled={items.length === 0}
               >
-                Proceed to Checkout
+                Proceed to Rental Checkout
               </Button>
             </CardContent>
           </Card>

@@ -24,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 import axios from 'axios';
 
 interface FeaturedProduct {
@@ -52,6 +53,7 @@ const HomePage: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addRentalItem, items } = useCart();
   
   const [featuredProducts, setFeaturedProducts] = useState<FeaturedProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,6 +116,31 @@ const HomePage: React.FC = () => {
   const handleProductClick = (productId: string) => {
     navigate(`/products/${productId}`);
   };
+
+  const handleTestAddToCart = () => {
+    const testItem = {
+      productId: 'test-1',
+      name: 'Test Product',
+      sku: 'TEST-001',
+      image: 'https://via.placeholder.com/150x100',
+      quantity: 1,
+      rentalType: 'DAILY' as const,
+      unitPrice: 50.00,
+      totalPrice: 350.00, // 7 days * $50
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      minimumDays: 1,
+      maximumDays: 30
+    };
+    
+    console.log('HomePage: Adding test item to cart:', testItem);
+    addRentalItem(testItem);
+    alert('Test item added to cart!');
+  };
+
+  // Debug cart state
+  console.log('HomePage: Current cart items:', items);
+  console.log('HomePage: Cart items count:', items.length);
 
   return (
     <Box>
@@ -340,6 +367,37 @@ const HomePage: React.FC = () => {
               >
                 Explore Products
               </Button>
+              {user && (
+                <>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    onClick={handleTestAddToCart}
+                    sx={{ 
+                      mb: 2,
+                      ml: 2,
+                      borderColor: 'white',
+                      color: 'white',
+                      '&:hover': {
+                        borderColor: 'grey.100',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      }
+                    }}
+                  >
+                    Test Add to Cart ({items.length})
+                  </Button>
+                  <Box sx={{ mt: 2, p: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                    <Typography variant="body2" color="white">
+                      Cart Status: {items.length} items
+                    </Typography>
+                    {items.length > 0 && (
+                      <Typography variant="body2" color="white" sx={{ mt: 1 }}>
+                        Items: {items.map(item => item.name).join(', ')}
+                      </Typography>
+                    )}
+                  </Box>
+                </>
+              )}
             </Box>
           </Box>
         </Container>

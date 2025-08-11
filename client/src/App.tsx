@@ -20,6 +20,8 @@ import RegisterPage from './pages/Auth/RegisterPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import RentalsPage from './pages/Rentals/RentalsPage';
 import RentalDetailPage from './pages/Rentals/RentalDetailPage';
+import RentalProductSelection from './pages/Rentals/RentalProductSelection';
+import RentalCheckout from './pages/Rentals/RentalCheckout';
 import ProfilePage from './pages/Profile/ProfilePage';
 import CartPage from './pages/Cart/CartPage';
 import CheckoutPage from './pages/Checkout/CheckoutPage';
@@ -151,6 +153,22 @@ function App() {
                           element={
                             <ProtectedRoute>
                               <RentalDetailPage />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/rentals/new"
+                          element={
+                            <ProtectedRoute>
+                              <RentalProductSelection />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/rentals/checkout"
+                          element={
+                            <ProtectedRoute>
+                              <RentalCheckout />
                             </ProtectedRoute>
                           }
                         />

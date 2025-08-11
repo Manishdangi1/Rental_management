@@ -111,30 +111,115 @@ router.post('/', [
   body('customerId').isString().notEmpty(),
   body('startDate').isISO8601(),
   body('endDate').isISO8601(),
+  body('totalAmount').isFloat({ min: 0 }),
+  body('securityDeposit').optional().isFloat({ min: 0 }),
   body('items').isArray().notEmpty(),
   body('pickupAddress').optional().isString(),
-  body('returnAddress').optional().isString()
+  body('returnAddress').optional().isString(),
+  body('notes').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array() 
+      });
     }
     
-    const { customerId, startDate, endDate, items, pickupAddress, returnAddress, notes } = req.body;
+    const { 
+      customerId, 
+      startDate, 
+      endDate, 
+      totalAmount, 
+      securityDeposit = 0,
+      items, 
+      pickupAddress, 
+      returnAddress, 
+      notes 
+    } = req.body;
     
-    // Calculate total amount
-    let totalAmount = 0;
+    // Validate that the user is creating a rental for themselves or has admin privileges
+    if (req.user.id !== customerId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ 
+        error: 'Access denied',
+        message: 'You can only create rentals for yourself' 
+      });
+    }
+    
+    // Validate dates
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (start >= end) {
+      return res.status(400).json({ 
+        error: 'Invalid dates',
+        message: 'End date must be after start date' 
+      });
+    }
+    
+    // Check product availability for the selected dates
     for (const item of items) {
-      totalAmount += item.quantity * item.unitPrice;
+      const existingRentals = await prisma.rental.findMany({
+        where: {
+          status: {
+            in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS']
+          },
+          items: {
+            some: {
+              productId: item.productId
+            }
+          },
+          OR: [
+            {
+              startDate: { lte: end },
+              endDate: { gte: start }
+            }
+          ]
+        },
+        include: {
+          items: {
+            where: {
+              productId: item.productId
+            }
+          }
+        }
+      });
+      
+      // Calculate total quantity already rented for this product during the period
+      let totalRented = 0;
+      existingRentals.forEach(rental => {
+        rental.items.forEach(rentalItem => {
+          totalRented += rentalItem.quantity;
+        });
+      });
+      
+      // Check if requested quantity is available
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId }
+      });
+      
+      if (!product) {
+        return res.status(400).json({ 
+          error: 'Product not found',
+          message: `Product with ID ${item.productId} does not exist` 
+        });
+      }
+      
+      if (product.availableQuantity - totalRented < item.quantity) {
+        return res.status(400).json({ 
+          error: 'Insufficient quantity',
+          message: `Only ${Math.max(0, product.availableQuantity - totalRented)} units of ${product.name} are available for the selected dates` 
+        });
+      }
     }
     
     const rental = await prisma.rental.create({
       data: {
         customerId,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: start,
+        endDate: end,
         totalAmount,
+        securityDeposit,
         pickupAddress,
         returnAddress,
         notes,
@@ -143,24 +228,44 @@ router.post('/', [
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            totalPrice: item.quantity * item.unitPrice
+            totalPrice: item.totalPrice
           }))
         }
       },
       include: {
-        customer: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
         items: {
           include: {
-            product: true
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                description: true
+              }
+            }
           }
         }
       }
     });
     
-    res.status(201).json(rental);
+    res.status(201).json({
+      message: 'Rental created successfully',
+      rental
+    });
   } catch (error) {
     console.error('Error creating rental:', error);
-    res.status(500).json({ error: 'Failed to create rental' });
+    res.status(500).json({ 
+      error: 'Failed to create rental',
+      message: 'Internal server error' 
+    });
   }
 });
 

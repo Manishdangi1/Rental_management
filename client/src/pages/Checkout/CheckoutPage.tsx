@@ -17,11 +17,11 @@ import {
 } from '@mui/material';
 import { useCart } from '../../contexts/CartContext';
 
-const steps = ['Shipping Information', 'Payment Details', 'Review & Confirm'];
+const steps = ['Rental Information', 'Payment Details', 'Review & Confirm'];
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
-  const { items, clearCart } = useCart();
+  const { items, clearRentalCart } = useCart();
   const [activeStep, setActiveStep] = useState(0);
   const [shippingData, setShippingData] = useState({
     firstName: '',
@@ -57,10 +57,10 @@ const CheckoutPage: React.FC = () => {
 
   const handleNext = () => {
     if (activeStep === 0) {
-      // Validate shipping information
+      // Validate rental information
       if (!shippingData.firstName || !shippingData.lastName || !shippingData.email || 
           !shippingData.address || !shippingData.city || !shippingData.state || !shippingData.zipCode) {
-        setError('Please fill in all required shipping fields');
+        setError('Please fill in all required rental information fields');
         return;
       }
     } else if (activeStep === 1) {
@@ -81,14 +81,14 @@ const CheckoutPage: React.FC = () => {
 
   const handleSubmit = async () => {
     try {
-      // Here you would typically send the order to your backend
-      console.log('Order submitted:', { shippingData, paymentData, items });
+      // Here you would typically send the rental order to your backend
+      console.log('Rental order submitted:', { shippingData, paymentData, items });
       
-      // Clear cart and redirect to success page
-      clearCart();
+      // Clear rental cart and redirect to dashboard
+      clearRentalCart();
       navigate('/dashboard');
     } catch (error) {
-      setError('Failed to process order. Please try again.');
+      setError('Failed to process rental order. Please try again.');
     }
   };
 
@@ -96,98 +96,107 @@ const CheckoutPage: React.FC = () => {
     return items.reduce((total, item) => total + item.totalPrice, 0);
   };
 
+  const calculateSecurityDeposit = () => {
+    return calculateSubtotal() * 0.2; // 20% security deposit
+  };
+
   const calculateTax = () => {
     return calculateSubtotal() * 0.08;
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return calculateSubtotal() + calculateSecurityDeposit() + calculateTax();
   };
 
-  const renderShippingForm = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          required
-          fullWidth
-          label="First Name"
-          name="firstName"
-          value={shippingData.firstName}
-          onChange={handleShippingChange}
-        />
+  const renderRentalForm = () => (
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Rental Contact Information
+      </Typography>
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            required
+            fullWidth
+            label="First Name"
+            name="firstName"
+            value={shippingData.firstName}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            required
+            fullWidth
+            label="Last Name"
+            name="lastName"
+            value={shippingData.lastName}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            required
+            fullWidth
+            label="Email"
+            name="email"
+            type="email"
+            value={shippingData.email}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            required
+            fullWidth
+            label="Phone"
+            name="phone"
+            value={shippingData.phone}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            required
+            fullWidth
+            label="Address"
+            name="address"
+            value={shippingData.address}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          <TextField
+            required
+            fullWidth
+            label="City"
+            name="city"
+            value={shippingData.city}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            required
+            fullWidth
+            label="State"
+            name="state"
+            value={shippingData.state}
+            onChange={handleShippingChange}
+          />
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            required
+            fullWidth
+            label="ZIP Code"
+            name="zipCode"
+            value={shippingData.zipCode}
+            onChange={handleShippingChange}
+          />
+        </Grid>
       </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          required
-          fullWidth
-          label="Last Name"
-          name="lastName"
-          value={shippingData.lastName}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          required
-          fullWidth
-          label="Email"
-          name="email"
-          type="email"
-          value={shippingData.email}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          required
-          fullWidth
-          label="Phone"
-          name="phone"
-          value={shippingData.phone}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-      <Grid item xs={12}>
-        <TextField
-          required
-          fullWidth
-          label="Address"
-          name="address"
-          value={shippingData.address}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-      <Grid item xs={12} sm={6}>
-        <TextField
-          required
-          fullWidth
-          label="City"
-          name="city"
-          value={shippingData.city}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-      <Grid item xs={12} sm={3}>
-        <TextField
-          required
-          fullWidth
-          label="State"
-          name="state"
-          value={shippingData.state}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-      <Grid item xs={12} sm={3}>
-        <TextField
-          required
-          fullWidth
-          label="ZIP Code"
-          name="zipCode"
-          value={shippingData.zipCode}
-          onChange={handleShippingChange}
-        />
-      </Grid>
-    </Grid>
+    </Box>
   );
 
   const renderPaymentForm = () => (
@@ -241,20 +250,24 @@ const CheckoutPage: React.FC = () => {
   const renderReview = () => (
     <Box>
       <Typography variant="h6" gutterBottom>
-        Order Summary
+        Rental Summary
       </Typography>
       {items.map((item) => (
         <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography>
-            {item.name} x {item.quantity}
+            {item.name} x {item.quantity} ({item.rentalType})
           </Typography>
           <Typography>${item.totalPrice.toFixed(2)}</Typography>
         </Box>
       ))}
       <Divider sx={{ my: 2 }} />
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-        <Typography>Subtotal</Typography>
+        <Typography>Rental Subtotal</Typography>
         <Typography>${calculateSubtotal().toFixed(2)}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+        <Typography>Security Deposit (20%)</Typography>
+        <Typography>${calculateSecurityDeposit().toFixed(2)}</Typography>
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
         <Typography>Tax (8%)</Typography>
@@ -273,7 +286,7 @@ const CheckoutPage: React.FC = () => {
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
-        return renderShippingForm();
+        return renderRentalForm();
       case 1:
         return renderPaymentForm();
       case 2:
@@ -286,7 +299,7 @@ const CheckoutPage: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Checkout
+        Rental Checkout
       </Typography>
 
       <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
@@ -319,20 +332,24 @@ const CheckoutPage: React.FC = () => {
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Order Summary
+                Rental Summary
               </Typography>
               {items.map((item) => (
                 <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2">
-                    {item.name} x {item.quantity}
+                    {item.name} x {item.quantity} ({item.rentalType})
                   </Typography>
                   <Typography variant="body2">${item.totalPrice.toFixed(2)}</Typography>
                 </Box>
               ))}
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography>Subtotal</Typography>
+                <Typography>Rental Subtotal</Typography>
                 <Typography>${calculateSubtotal().toFixed(2)}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography>Security Deposit (20%)</Typography>
+                <Typography>${calculateSecurityDeposit().toFixed(2)}</Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography>Tax (8%)</Typography>

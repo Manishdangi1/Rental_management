@@ -18,17 +18,17 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
-  ShoppingCart,
+  LocalShipping,
   Person,
   Dashboard,
   Logout,
   Settings,
   Home,
   Inventory,
-  LocalShipping,
   Assessment,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -43,6 +43,10 @@ const Navbar: React.FC = () => {
   
   const { user, logout } = useAuth();
   const { items } = useCart();
+  
+  // Debug cart items
+  console.log('Navbar: Cart items:', items);
+  console.log('Navbar: Cart items length:', items.length);
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
@@ -180,17 +184,19 @@ const Navbar: React.FC = () => {
 
           {/* Right side items */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Cart */}
+            {/* Rental Cart */}
             {user && (
-              <IconButton
-                color="inherit"
-                onClick={() => navigate('/cart')}
-                sx={{ position: 'relative' }}
-              >
-                <Badge badgeContent={items.length} color="secondary">
-                  <ShoppingCart />
-                </Badge>
-              </IconButton>
+              <Tooltip title="Rental Cart" arrow>
+                <IconButton
+                  color="inherit"
+                  onClick={() => navigate('/cart')}
+                  sx={{ position: 'relative' }}
+                >
+                  <Badge badgeContent={items.length} color="secondary">
+                    <LocalShipping />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
             )}
 
             {/* User menu or auth buttons */}

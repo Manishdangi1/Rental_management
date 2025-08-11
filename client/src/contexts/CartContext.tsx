@@ -25,6 +25,15 @@ interface CartState {
 }
 
 interface CartContextType extends CartState {
+  addRentalItem: (item: Omit<CartItem, 'id'>) => void;
+  removeRentalItem: (id: string) => void;
+  updateRentalItem: (id: string, updates: Partial<CartItem>) => void;
+  updateRentalItemQuantity: (id: string, quantity: number) => void;
+  updateRentalItemDates: (id: string, startDate: Date, endDate: Date) => void;
+  updateRentalItemRentalType: (id: string, rentalType: CartItem['rentalType']) => void;
+  clearRentalCart: () => void;
+  calculateRentalTotals: () => void;
+  // Backward compatibility methods
   addItem: (item: Omit<CartItem, 'id'>) => void;
   removeItem: (id: string) => void;
   updateItem: (id: string, updates: Partial<CartItem>) => void;
@@ -87,8 +96,11 @@ const calculatePrice = (
 
 // Reducer
 const cartReducer = (state: CartState, action: CartAction): CartState => {
+  console.log('CartContext: Reducer called with action:', action.type, 'payload:', 'payload' in action ? action.payload : 'none');
+  
   switch (action.type) {
     case 'ADD_ITEM': {
+      console.log('CartContext: Processing ADD_ITEM, current items:', state.items);
       const existingItemIndex = state.items.findIndex(
         item => item.productId === action.payload.productId && 
                 item.rentalType === action.payload.rentalType &&
@@ -99,6 +111,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       let newItems;
       if (existingItemIndex >= 0) {
         // Update existing item quantity
+        console.log('CartContext: Updating existing item at index:', existingItemIndex);
         newItems = state.items.map((item, index) =>
           index === existingItemIndex
             ? { ...item, quantity: item.quantity + action.payload.quantity }
@@ -106,9 +119,11 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         );
       } else {
         // Add new item
+        console.log('CartContext: Adding new item to cart');
         newItems = [...state.items, action.payload];
       }
 
+      console.log('CartContext: New items array:', newItems);
       return {
         ...state,
         items: newItems,
@@ -217,10 +232,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('rentalCart');
+    console.log('CartContext: Loading cart from localStorage...');
+    const savedCart = localStorage.getItem('rentalManagementCart');
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
+        console.log('CartContext: Found saved cart:', parsedCart);
         // Convert date strings back to Date objects
         const itemsWithDates = parsedCart.items.map((item: any) => ({
           ...item,
@@ -228,25 +245,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           endDate: new Date(item.endDate),
         }));
         
-        dispatch({ type: 'UPDATE_ITEM', payload: { id: 'temp', updates: { startDate: new Date() } } });
-        // Clear the temporary update and set the actual items
-        dispatch({ type: 'CLEAR_CART' });
+        console.log('CartContext: Items with dates:', itemsWithDates);
+        // Set the items directly
         itemsWithDates.forEach((item: CartItem) => {
           dispatch({ type: 'ADD_ITEM', payload: item });
         });
+        console.log('CartContext: Cart items loaded successfully');
       } catch (error) {
         console.error('Failed to load cart from localStorage:', error);
-        localStorage.removeItem('rentalCart');
+        localStorage.removeItem('rentalManagementCart');
       }
+    } else {
+      console.log('CartContext: No saved cart found in localStorage');
     }
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
+    console.log('CartContext: Saving cart to localStorage, items count:', state.items.length);
     if (state.items.length > 0) {
-      localStorage.setItem('rentalCart', JSON.stringify(state));
+      localStorage.setItem('rentalManagementCart', JSON.stringify(state));
+      console.log('CartContext: Cart saved to localStorage');
     } else {
-      localStorage.removeItem('rentalCart');
+      localStorage.removeItem('rentalManagementCart');
+      console.log('CartContext: Cart removed from localStorage');
     }
   }, [state.items]);
 
@@ -255,66 +277,81 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     dispatch({ type: 'CALCULATE_TOTALS' });
   }, [state.items]);
 
-  // Add item to cart
-  const addItem = (item: Omit<CartItem, 'id'>) => {
+  // Add rental item to cart
+  const addRentalItem = (item: Omit<CartItem, 'id'>) => {
+    console.log('CartContext: Adding rental item to cart:', item);
     const cartItem: CartItem = {
       ...item,
       id: `${item.productId}-${Date.now()}`,
       totalPrice: calculatePrice(item.unitPrice, item.rentalType, item.startDate, item.endDate),
     };
+    console.log('CartContext: Created cart item:', cartItem);
     dispatch({ type: 'ADD_ITEM', payload: cartItem });
+    console.log('CartContext: Dispatched ADD_ITEM action');
   };
 
-  // Remove item from cart
-  const removeItem = (id: string) => {
+  // Remove rental item from cart
+  const removeRentalItem = (id: string) => {
     dispatch({ type: 'REMOVE_ITEM', payload: id });
   };
 
-  // Update item in cart
-  const updateItem = (id: string, updates: Partial<CartItem>) => {
+  // Update rental item in cart
+  const updateRentalItem = (id: string, updates: Partial<CartItem>) => {
     dispatch({ type: 'UPDATE_ITEM', payload: { id, updates } });
   };
 
-  // Update item quantity
-  const updateItemQuantity = (id: string, quantity: number) => {
+  // Update rental item quantity
+  const updateRentalItemQuantity = (id: string, quantity: number) => {
     if (quantity <= 0) {
-      removeItem(id);
+      removeRentalItem(id);
     } else {
       dispatch({ type: 'UPDATE_ITEM_QUANTITY', payload: { id, quantity } });
     }
   };
 
-  // Update item dates
-  const updateItemDates = (id: string, startDate: Date, endDate: Date) => {
+  // Update rental item dates
+  const updateRentalItemDates = (id: string, startDate: Date, endDate: Date) => {
     dispatch({ type: 'UPDATE_ITEM_DATES', payload: { id, startDate, endDate } });
   };
 
-  // Update item rental type
-  const updateItemRentalType = (id: string, rentalType: CartItem['rentalType']) => {
+  // Update rental item rental type
+  const updateRentalItemRentalType = (id: string, rentalType: CartItem['rentalType']) => {
     dispatch({ type: 'UPDATE_ITEM_RENTAL_TYPE', payload: { id, rentalType } });
   };
 
-  // Clear cart
-  const clearCart = () => {
+  // Clear rental cart
+  const clearRentalCart = () => {
     dispatch({ type: 'CLEAR_CART' });
   };
 
-  // Calculate totals
-  const calculateTotals = () => {
+  // Calculate rental totals
+  const calculateRentalTotals = () => {
     dispatch({ type: 'CALCULATE_TOTALS' });
   };
 
   const value: CartContextType = {
     ...state,
-    addItem,
-    removeItem,
-    updateItem,
-    updateItemQuantity,
-    updateItemDates,
-    updateItemRentalType,
-    clearCart,
-    calculateTotals,
+    addRentalItem: addRentalItem,
+    removeRentalItem: removeRentalItem,
+    updateRentalItem: updateRentalItem,
+    updateRentalItemQuantity: updateRentalItemQuantity,
+    updateRentalItemDates: updateRentalItemDates,
+    updateRentalItemRentalType: updateRentalItemRentalType,
+    clearRentalCart: clearRentalCart,
+    calculateRentalTotals: calculateRentalTotals,
+    // Keep backward compatibility
+    addItem: addRentalItem,
+    removeItem: removeRentalItem,
+    updateItem: updateRentalItem,
+    updateItemQuantity: updateRentalItemQuantity,
+    updateItemDates: updateRentalItemDates,
+    updateItemRentalType: updateRentalItemRentalType,
+    clearCart: clearRentalCart,
+    calculateTotals: calculateRentalTotals,
   };
+
+  console.log('CartContext: Provider value:', value);
+  console.log('CartContext: Current state:', state);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
@@ -322,7 +359,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 // Hook to use cart context
 export const useCart = (): CartContextType => {
   const context = useContext(CartContext);
+  console.log('useCart hook called, context:', context);
   if (context === undefined) {
+    console.error('useCart must be used within a CartProvider');
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
