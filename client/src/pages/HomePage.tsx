@@ -31,11 +31,21 @@ interface FeaturedProduct {
   id: string;
   name: string;
   description: string;
-  image: string;
-  category: string;
-  rating: number;
-  reviewCount: number;
-  startingPrice: number;
+  images: string[];
+  category: {
+    id: string;
+    name: string;
+    description: string;
+  };
+  pricelistItems: Array<{
+    rentalType: string;
+    price: number;
+    currency: string;
+    discount: number;
+  }>;
+  specifications: any;
+  totalQuantity: number;
+  availableQuantity: number;
 }
 
 const HomePage: React.FC = () => {
@@ -62,7 +72,7 @@ const HomePage: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch featured products:', error);
         setError('Failed to load featured products');
-        setFeaturedProducts([]); // Set empty array instead of mock data
+        setFeaturedProducts([]);
       } finally {
         setLoading(false);
       }
@@ -70,6 +80,29 @@ const HomePage: React.FC = () => {
 
     fetchFeaturedProducts();
   }, []);
+
+  const features = [
+    {
+      icon: <Search sx={{ fontSize: 40, color: 'primary.main' }} />,
+      title: 'Easy Booking',
+      description: 'Browse thousands of products and book instantly online',
+    },
+    {
+      icon: <LocalShipping sx={{ fontSize: 40, color: 'primary.main' }} />,
+      title: 'Fast Delivery',
+      description: 'Professional delivery and pickup service included',
+    },
+    {
+      icon: <Security sx={{ fontSize: 40, color: 'primary.main' }} />,
+      title: 'Secure Payments',
+      description: 'Multiple payment options with secure processing',
+    },
+    {
+      icon: <Support sx={{ fontSize: 40, color: 'primary.main' }} />,
+      title: '24/7 Support',
+      description: 'Round-the-clock customer support for all your needs',
+    },
+  ];
 
   const handleGetStarted = () => {
     if (user) {
@@ -85,12 +118,6 @@ const HomePage: React.FC = () => {
 
   return (
     <Box>
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <Typography>Loading...</Typography>
-        </Box>
-      )}
-      
       {/* Hero Section */}
       <Paper
         sx={{
@@ -164,125 +191,37 @@ const HomePage: React.FC = () => {
         </Typography>
         
         <Grid container spacing={4}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                p: 2,
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  transition: 'transform 0.3s ease-in-out',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <Box sx={{ mb: 2 }}>
-                <Search sx={{ fontSize: 40, color: 'primary.main' }} />
-              </Box>
-              <CardContent sx={{ flexGrow: 1, p: 0 }}>
-                <Typography gutterBottom variant="h6" component="h3">
-                  Easy Booking
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Browse thousands of products and book instantly online
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                p: 2,
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  transition: 'transform 0.3s ease-in-out',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <Box sx={{ mb: 2 }}>
-                <LocalShipping sx={{ fontSize: 40, color: 'primary.main' }} />
-              </Box>
-              <CardContent sx={{ flexGrow: 1, p: 0 }}>
-                <Typography gutterBottom variant="h6" component="h3">
-                  Fast Delivery
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Professional delivery and pickup service included
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                p: 2,
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  transition: 'transform 0.3s ease-in-out',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <Box sx={{ mb: 2 }}>
-                <Security sx={{ fontSize: 40, color: 'primary.main' }} />
-              </Box>
-              <CardContent sx={{ flexGrow: 1, p: 0 }}>
-                <Typography gutterBottom variant="h6" component="h3">
-                  Secure Payments
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Multiple payment options with secure processing
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                textAlign: 'center',
-                p: 2,
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  transition: 'transform 0.3s ease-in-out',
-                  boxShadow: theme.shadows[8],
-                },
-              }}
-            >
-              <Box sx={{ mb: 2 }}>
-                <Support sx={{ fontSize: 40, color: 'primary.main' }} />
-              </Box>
-              <CardContent sx={{ flexGrow: 1, p: 0 }}>
-                <Typography gutterBottom variant="h6" component="h3">
-                  24/7 Support
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Round-the-clock customer support for all your needs
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
+          {features.map((feature, index) => (
+            <Grid item xs={12} sm={6} md={3} key={index}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  p: 2,
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    transition: 'transform 0.3s ease-in-out',
+                    boxShadow: theme.shadows[8],
+                  },
+                }}
+              >
+                <Box sx={{ mb: 2 }}>
+                  {feature.icon}
+                </Box>
+                <CardContent sx={{ flexGrow: 1, p: 0 }}>
+                  <Typography gutterBottom variant="h6" component="h3">
+                    {feature.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {feature.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
       </Container>
 
@@ -301,75 +240,61 @@ const HomePage: React.FC = () => {
           </Button>
         </Box>
 
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <Typography>Loading featured products...</Typography>
-          </Box>
-        ) : error ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <Typography color="error">{error}</Typography>
-          </Box>
-        ) : featuredProducts.length === 0 ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <Typography color="text.secondary">No featured products available at the moment.</Typography>
-          </Box>
-        ) : (
-          <Grid container spacing={3}>
-            {featuredProducts.map((product) => (
-              <Grid item xs={12} sm={6} md={4} key={product.id}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    cursor: 'pointer',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      transition: 'transform 0.3s ease-in-out',
-                      boxShadow: theme.shadows[8],
-                    },
-                  }}
-                  onClick={() => handleProductClick(product.id)}
-                >
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={product.image}
-                    alt={product.name}
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Chip label={product.category} size="small" color="primary" />
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Rating value={product.rating} precision={0.1} size="small" readOnly />
-                        <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                          ({product.reviewCount})
-                        </Typography>
-                      </Box>
+        <Grid container spacing={3}>
+          {featuredProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={4} key={product.id}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    transition: 'transform 0.3s ease-in-out',
+                    boxShadow: theme.shadows[8],
+                  },
+                }}
+                onClick={() => handleProductClick(product.id)}
+              >
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/400x300?text=No+Image'}
+                  alt={product.name}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Chip label={product.category?.name || 'Uncategorized'} size="small" color="primary" />
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Rating value={4.8} precision={0.1} size="small" readOnly />
+                      <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+                        (127)
+                      </Typography>
                     </Box>
-                    <Typography gutterBottom variant="h6" component="h3">
-                      {product.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {product.description}
-                    </Typography>
-                    <Typography variant="h6" color="primary" fontWeight="bold">
-                      Starting at ${product.startingPrice}/day
-                    </Typography>
-                  </CardContent>
-                  <CardActions>
-                    <Button size="small" color="primary">
-                      View Details
-                    </Button>
-                    <Button size="small" color="primary">
-                      Add to Cart
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+                  </Box>
+                  <Typography gutterBottom variant="h6" component="h3">
+                    {product.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {product.description}
+                  </Typography>
+                  <Typography variant="h6" color="primary" fontWeight="bold">
+                    Starting at ${product.pricelistItems && product.pricelistItems.length > 0 ? product.pricelistItems[0].price : 0}/day
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button size="small" color="primary">
+                    View Details
+                  </Button>
+                  <Button size="small" color="primary">
+                    Add to Cart
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Container>
 
       {/* CTA Section */}
