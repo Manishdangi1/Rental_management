@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const { body, validationResult } = require('express-validator');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -349,6 +350,215 @@ router.get('/rentals/invoice-status/:status', authenticateToken, requireRole(['A
   } catch (error) {
     console.error('Error fetching rentals by invoice status:', error);
     res.status(500).json({ error: 'Failed to fetch rentals by invoice status' });
+  }
+});
+
+// Create new rental product
+router.post('/products', authenticateToken, requireRole(['ADMIN']), [
+  body('name').trim().notEmpty().withMessage('Product name is required'),
+  body('description').optional().trim(),
+  body('sku').trim().notEmpty().withMessage('SKU is required'),
+  body('categoryId').notEmpty().withMessage('Category is required'),
+  body('totalQuantity').isInt({ min: 1 }).withMessage('Total quantity must be at least 1'),
+  body('minimumRentalDays').isInt({ min: 1 }).withMessage('Minimum rental days must be at least 1'),
+  body('maximumRentalDays').optional().isInt({ min: 1 }),
+  body('basePrice').optional().isFloat({ min: 0 }),
+  body('isSeasonal').optional().isBoolean(),
+  body('peakSeasonStart').optional().isISO8601(),
+  body('peakSeasonEnd').optional().isISO8601(),
+  body('rentalInstructions').optional().trim(),
+  body('setupRequirements').optional().trim(),
+  body('returnRequirements').optional().trim(),
+  body('damagePolicy').optional().trim(),
+  body('insuranceRequired').optional().isBoolean(),
+  body('insuranceAmount').optional().isFloat({ min: 0 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const {
+      name,
+      description,
+      sku,
+      categoryId,
+      totalQuantity,
+      minimumRentalDays,
+      maximumRentalDays,
+      basePrice,
+      isSeasonal,
+      peakSeasonStart,
+      peakSeasonEnd,
+      rentalInstructions,
+      setupRequirements,
+      returnRequirements,
+      damagePolicy,
+      insuranceRequired,
+      insuranceAmount
+    } = req.body;
+
+    // Check if SKU already exists
+    const existingProduct = await prisma.product.findUnique({
+      where: { sku }
+    });
+
+    if (existingProduct) {
+      return res.status(400).json({
+        error: 'SKU already exists',
+        message: 'A product with this SKU already exists'
+      });
+    }
+
+    // Create the product
+    const product = await prisma.product.create({
+      data: {
+        name,
+        description,
+        sku,
+        categoryId,
+        totalQuantity,
+        availableQuantity: totalQuantity,
+        minimumRentalDays,
+        maximumRentalDays,
+        basePrice,
+        isSeasonal: isSeasonal || false,
+        peakSeasonStart: peakSeasonStart ? new Date(peakSeasonStart) : null,
+        peakSeasonEnd: peakSeasonEnd ? new Date(peakSeasonEnd) : null,
+        rentalInstructions,
+        setupRequirements,
+        returnRequirements,
+        damagePolicy,
+        insuranceRequired: insuranceRequired || false,
+        insuranceAmount,
+        isRentable: true,
+        isActive: true,
+        images: [],
+        specifications: {}
+      },
+      include: {
+        category: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+
+    res.status(201).json({
+      message: 'Rental product created successfully',
+      product
+    });
+
+  } catch (error) {
+    console.error('Error creating rental product:', error);
+    res.status(500).json({ error: 'Failed to create rental product' });
+  }
+});
+
+// Update rental product
+router.put('/products/:id', authenticateToken, requireRole(['ADMIN']), [
+  body('name').optional().trim().notEmpty().withMessage('Product name cannot be empty'),
+  body('description').optional().trim(),
+  body('totalQuantity').optional().isInt({ min: 1 }).withMessage('Total quantity must be at least 1'),
+  body('minimumRentalDays').optional().isInt({ min: 1 }).withMessage('Minimum rental days must be at least 1'),
+  body('maximumRentalDays').optional().isInt({ min: 1 }),
+  body('basePrice').optional().isFloat({ min: 0 }),
+  body('isSeasonal').optional().isBoolean(),
+  body('peakSeasonStart').optional().isISO8601(),
+  body('peakSeasonEnd').optional().isISO8601(),
+  body('rentalInstructions').optional().trim(),
+  body('setupRequirements').optional().trim(),
+  body('returnRequirements').optional().trim(),
+  body('damagePolicy').optional().trim(),
+  body('insuranceRequired').optional().isBoolean(),
+  body('insuranceAmount').optional().isFloat({ min: 0 }),
+  body('isActive').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const updateData = { ...req.body };
+
+    // Convert date strings to Date objects if provided
+    if (updateData.peakSeasonStart) {
+      updateData.peakSeasonStart = new Date(updateData.peakSeasonStart);
+    }
+    if (updateData.peakSeasonEnd) {
+      updateData.peakSeasonEnd = new Date(updateData.peakSeasonEnd);
+    }
+
+    // Update the product
+    const updatedProduct = await prisma.product.update({
+      where: { id },
+      data: updateData,
+      include: {
+        category: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+
+    res.json({
+      message: 'Rental product updated successfully',
+      product: updatedProduct
+    });
+
+  } catch (error) {
+    console.error('Error updating rental product:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.status(500).json({ error: 'Failed to update rental product' });
+  }
+});
+
+// Delete rental product
+router.delete('/products/:id', authenticateToken, requireRole(['ADMIN']), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if product has any active rentals
+    const activeRentals = await prisma.rentalItem.findFirst({
+      where: {
+        productId: id,
+        rental: {
+          status: {
+            in: ['PICKED_UP', 'RESERVED']
+          }
+        }
+      }
+    });
+
+    if (activeRentals) {
+      return res.status(400).json({
+        error: 'Cannot delete product',
+        message: 'Product has active rentals and cannot be deleted'
+      });
+    }
+
+    // Soft delete by setting isActive to false
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false }
+    });
+
+    res.json({
+      message: 'Rental product deactivated successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting rental product:', error);
+    res.status(500).json({ error: 'Failed to delete rental product' });
   }
 });
 

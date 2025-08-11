@@ -108,11 +108,13 @@ router.post('/', [
   body('rentalId').isString().notEmpty(),
   body('customerId').isString().notEmpty(),
   body('invoiceNumber').isString().notEmpty(),
-  body('amount').isFloat({ min: 0 }),
+  body('subtotal').isFloat({ min: 0 }),
   body('tax').isFloat({ min: 0 }),
+  body('discount').optional().isFloat({ min: 0 }),
   body('total').isFloat({ min: 0 }),
   body('dueDate').isISO8601(),
-  body('notes').optional().isString()
+  body('notes').optional().isString(),
+  body('terms').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -120,7 +122,7 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
     
-    const { rentalId, customerId, invoiceNumber, amount, tax, total, dueDate, notes } = req.body;
+    const { rentalId, customerId, invoiceNumber, subtotal, tax, discount = 0, total, dueDate, notes, terms } = req.body;
     
     // Check if invoice number already exists
     const existingInvoice = await prisma.invoice.findUnique({
@@ -145,11 +147,13 @@ router.post('/', [
         rentalId,
         customerId,
         invoiceNumber,
-        amount,
+        subtotal,
         tax,
+        discount,
         total,
         dueDate: new Date(dueDate),
         notes,
+        terms,
         status: 'DRAFT'
       },
       include: {
@@ -175,7 +179,7 @@ router.post('/', [
 router.patch('/:id/status', [
   authenticateToken,
   requireRole(['ADMIN']),
-  body('status').isIn(['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED'])
+  body('status').isIn(['DRAFT', 'SENT', 'PAID', 'PARTIALLY_PAID', 'OVERDUE', 'CANCELLED', 'DISPUTED'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -223,7 +227,10 @@ router.get('/stats/overview', [
     const draftInvoices = await prisma.invoice.count({ where: { status: 'DRAFT' } });
     const sentInvoices = await prisma.invoice.count({ where: { status: 'SENT' } });
     const paidInvoices = await prisma.invoice.count({ where: { status: 'PAID' } });
+    const partiallyPaidInvoices = await prisma.invoice.count({ where: { status: 'PARTIALLY_PAID' } });
     const overdueInvoices = await prisma.invoice.count({ where: { status: 'OVERDUE' } });
+    const disputedInvoices = await prisma.invoice.count({ where: { status: 'DISPUTED' } });
+    const cancelledInvoices = await prisma.invoice.count({ where: { status: 'CANCELLED' } });
     
     // Calculate total revenue from paid invoices
     const revenueData = await prisma.invoice.aggregate({
@@ -231,15 +238,30 @@ router.get('/stats/overview', [
       _sum: { total: true }
     });
     
+    // Calculate outstanding amount from unpaid invoices
+    const outstandingData = await prisma.invoice.aggregate({
+      where: { 
+        status: { 
+          in: ['SENT', 'OVERDUE', 'PARTIALLY_PAID', 'DISPUTED'] 
+        } 
+      },
+      _sum: { total: true }
+    });
+    
     const totalRevenue = revenueData._sum.total || 0;
+    const outstandingAmount = outstandingData._sum.total || 0;
     
     res.json({
       totalInvoices,
       draftInvoices,
       sentInvoices,
       paidInvoices,
+      partiallyPaidInvoices,
       overdueInvoices,
-      totalRevenue
+      disputedInvoices,
+      cancelledInvoices,
+      totalRevenue,
+      outstandingAmount
     });
   } catch (error) {
     console.error('Error fetching invoice statistics:', error);

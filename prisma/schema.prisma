@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,10 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User Management
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
+  id            String         @id @default(cuid())
+  email         String         @unique
   password      String
   firstName     String
   lastName      String
@@ -23,90 +19,71 @@ model User {
   state         String?
   zipCode       String?
   country       String?
-  role          UserRole @default(CUSTOMER)
-  isActive      Boolean  @default(true)
-  emailVerified Boolean  @default(false)
+  role          UserRole       @default(CUSTOMER)
+  isActive      Boolean        @default(true)
+  emailVerified Boolean        @default(false)
   profileImage  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   lastLogin     DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  rentals       Rental[]
-  payments      Payment[]
-  notifications Notification[]
   invoices      Invoice[]
+  notifications Notification[]
+  payments      Payment[]
+  rentals       Rental[]
 
   @@map("users")
 }
 
-enum UserRole {
-  CUSTOMER
-  ADMIN
-}
-
-// Product Categories
 model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String?
   image       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  products Product[]
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
 
   @@map("categories")
 }
 
-// Rental Products
 model Product {
-  id                String   @id @default(cuid())
-  name              String
-  description       String?
-  sku               String   @unique
-  categoryId        String
-  isRentable        Boolean  @default(true)
-  isActive          Boolean  @default(true)
-  images            String[]
-  specifications    Json?
-  totalQuantity     Int      @default(1)
-  availableQuantity Int      @default(1)
-  minimumRentalDays Int      @default(1)
-  maximumRentalDays Int?
-  weight            Float?
-  dimensions        Json?
-  
-  // Enhanced rental fields
-  rentalInstructions String?  // Instructions for customers
-  setupRequirements  String?  // What's needed to set up the product
-  returnRequirements String?  // What customers need to do before return
-  damagePolicy      String?  // Policy for damages
-  insuranceRequired Boolean   @default(false)
-  insuranceAmount   Float?   // Required insurance amount
-  
-  // Pricing and availability
-  basePrice         Float?   // Base price for reference
-  isSeasonal        Boolean  @default(false)  // Seasonal pricing
-  peakSeasonStart   DateTime? // Peak season start date
-  peakSeasonEnd     DateTime? // Peak season end date
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  category          Category @relation(fields: [categoryId], references: [id])
-  pricelistItems   PricelistItem[]
-  rentalItems      RentalItem[]
-  productImages    ProductImage[]
-  availability     ProductAvailability[]
+  id                 String                @id @default(cuid())
+  name               String
+  description        String?
+  sku                String                @unique
+  categoryId         String
+  isRentable         Boolean               @default(true)
+  isActive           Boolean               @default(true)
+  images             String[]
+  specifications     Json?
+  totalQuantity      Int                   @default(1)
+  availableQuantity  Int                   @default(1)
+  minimumRentalDays  Int                   @default(1)
+  maximumRentalDays  Int?
+  weight             Float?
+  dimensions         Json?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  basePrice          Float?
+  damagePolicy       String?
+  insuranceAmount    Float?
+  insuranceRequired  Boolean               @default(false)
+  isSeasonal         Boolean               @default(false)
+  peakSeasonEnd      DateTime?
+  peakSeasonStart    DateTime?
+  rentalInstructions String?
+  returnRequirements String?
+  setupRequirements  String?
+  pricelistItems     PricelistItem[]
+  availability       ProductAvailability[]
+  productImages      ProductImage[]
+  category           Category              @relation(fields: [categoryId], references: [id])
+  rentalItems        RentalItem[]
 
   @@map("products")
 }
 
-// Product Images
 model ProductImage {
   id        String   @id @default(cuid())
   productId String
@@ -115,48 +92,203 @@ model ProductImage {
   isPrimary Boolean  @default(false)
   order     Int      @default(0)
   createdAt DateTime @default(now())
-
-  // Relations
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
 }
 
-// Product Availability Tracking
 model ProductAvailability {
-  id          String   @id @default(cuid())
-  productId   String
-  date        DateTime // Date for availability tracking
-  available   Int      // Available quantity on this date
-  reserved    Int      @default(0) // Reserved quantity on this date
-  rented      Int      @default(0) // Currently rented quantity on this date
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  productId String
+  date      DateTime
+  available Int
+  reserved  Int      @default(0)
+  rented    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, date])
   @@map("product_availability")
 }
 
-// Pricing Management
 model Pricelist {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean  @default(true)
-  validFrom   DateTime
-  validTo     DateTime?
+  id           String          @id @default(cuid())
+  name         String
+  description  String?
+  isActive     Boolean         @default(true)
+  validFrom    DateTime
+  validTo      DateTime?
   customerType CustomerType?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  items PricelistItem[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  items        PricelistItem[]
 
   @@map("pricelists")
+}
+
+model PricelistItem {
+  id                 String       @id @default(cuid())
+  pricelistId        String
+  productId          String
+  rentalType         RentalType
+  price              Float
+  currency           String       @default("USD")
+  minimumDays        Int          @default(1)
+  maximumDays        Int?
+  discount           Float?       @default(0)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  bulkDiscount       Boolean      @default(false)
+  bulkDiscountAmount Float?
+  bulkThreshold      Int?
+  discountType       DiscountType @default(PERCENTAGE)
+  seasonalMultiplier Float?
+  validFrom          DateTime     @default(now())
+  validTo            DateTime?
+  pricelist          Pricelist    @relation(fields: [pricelistId], references: [id])
+  product            Product      @relation(fields: [productId], references: [id])
+
+  @@unique([pricelistId, productId, rentalType])
+  @@map("pricelist_items")
+}
+
+model Rental {
+  id              String         @id @default(cuid())
+  customerId      String
+  status          RentalStatus   @default(QUOTATION)
+  startDate       DateTime?
+  endDate         DateTime?
+  totalAmount     Float          @default(0)
+  securityDeposit Float?         @default(0)
+  lateFees        Float?         @default(0)
+  notes           String?
+  pickupAddress   String?
+  returnAddress   String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  customerName    String
+  orderNumber     String         @unique
+  subtotal        Float          @default(0)
+  tax             Float          @default(0)
+  invoiceStatus   String         @default("NOTHING_TO_INVOICE")
+  deliveries      Delivery[]
+  invoices        Invoice[]
+  notifications   Notification[]
+  payments        Payment[]
+  items           RentalItem[]
+  customer        User           @relation(fields: [customerId], references: [id])
+
+  @@map("rentals")
+}
+
+model RentalItem {
+  id            String    @id @default(cuid())
+  rentalId      String
+  productId     String
+  quantity      Int
+  unitPrice     Float
+  totalPrice    Float
+  notes         String?
+  createdAt     DateTime  @default(now())
+  endDate       DateTime?
+  productName   String
+  rentalType    String
+  startDate     DateTime?
+  invoiceStatus String    @default("NOTHING_TO_INVOICE")
+  product       Product   @relation(fields: [productId], references: [id])
+  rental        Rental    @relation(fields: [rentalId], references: [id])
+
+  @@map("rental_items")
+}
+
+model Delivery {
+  id           String         @id @default(cuid())
+  rentalId     String
+  type         DeliveryType
+  status       DeliveryStatus @default(SCHEDULED)
+  scheduledAt  DateTime
+  completedAt  DateTime?
+  address      String
+  contactName  String?
+  contactPhone String?
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  rental       Rental         @relation(fields: [rentalId], references: [id])
+
+  @@map("deliveries")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  rentalId       String
+  customerId     String
+  amount         Float
+  currency       String        @default("USD")
+  status         PaymentStatus @default(PENDING)
+  method         PaymentMethod
+  transactionId  String?
+  stripeIntentId String?
+  description    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  users          User          @relation(fields: [customerId], references: [id])
+  rental         Rental        @relation(fields: [rentalId], references: [id])
+
+  @@map("payments")
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  rentalId      String
+  customerId    String
+  invoiceNumber String        @unique
+  amount        Float
+  tax           Float         @default(0)
+  total         Float
+  status        InvoiceStatus @default(DRAFT)
+  dueDate       DateTime
+  paidAt        DateTime?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  customer      User          @relation(fields: [customerId], references: [id])
+  rental        Rental        @relation(fields: [rentalId], references: [id])
+
+  @@map("invoices")
+}
+
+model Notification {
+  id       String              @id @default(cuid())
+  userId   String
+  rentalId String?
+  type     NotificationType
+  title    String
+  message  String
+  isRead   Boolean             @default(false)
+  sentAt   DateTime            @default(now())
+  readAt   DateTime?
+  channel  NotificationChannel @default(EMAIL)
+  rental   Rental?             @relation(fields: [rentalId], references: [id])
+  user     User                @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
 }
 
 enum CustomerType {
@@ -164,40 +296,6 @@ enum CustomerType {
   VIP
   CORPORATE
   WHOLESALE
-}
-
-model PricelistItem {
-  id          String   @id @default(cuid())
-  pricelistId String
-  productId   String
-  rentalType  RentalType
-  price       Float
-  currency    String   @default("USD")
-  minimumDays Int      @default(1)
-  maximumDays Int?
-  discount    Float?   @default(0)
-  
-  // Enhanced pricing fields
-  discountType    DiscountType @default(PERCENTAGE) // PERCENTAGE or FIXED_AMOUNT
-  bulkDiscount    Boolean      @default(false)      // Apply bulk discounts
-  bulkThreshold   Int?         // Quantity threshold for bulk discount
-  bulkDiscountAmount Float?    // Bulk discount amount
-  
-  // Seasonal pricing
-  seasonalMultiplier Float?    // Multiplier for seasonal pricing
-  validFrom         DateTime   @default(now())
-  validTo           DateTime?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  pricelist Pricelist @relation(fields: [pricelistId], references: [id])
-  product   Product   @relation(fields: [productId], references: [id])
-
-  @@unique([pricelistId, productId, rentalType])
-
-  @@map("pricelist_items")
 }
 
 enum DiscountType {
@@ -213,38 +311,6 @@ enum RentalType {
   YEARLY
 }
 
-// Rental Orders
-model Rental {
-  id                String        @id @default(cuid())
-  orderNumber       String        @unique // Unique order number like RO-123456-001
-  customerId        String
-  customerName      String        // Customer name for display
-  status            RentalStatus  @default(QUOTATION)
-  startDate         DateTime?     // Made optional since orders can start as QUOTATION
-  endDate           DateTime?     // Made optional since orders can start as QUOTATION
-  totalAmount       Float         @default(0)
-  subtotal          Float         @default(0) // Subtotal before tax
-  tax               Float         @default(0) // Tax amount
-  securityDeposit   Float?        @default(0)
-  lateFees          Float?        @default(0)
-  notes             String?
-  pickupAddress     String?
-  returnAddress     String?
-  invoiceStatus     String        @default("NOTHING_TO_INVOICE") // FULLY_INVOICED, NOTHING_TO_INVOICE, TO_INVOICE
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-
-  // Relations
-  customer          User          @relation(fields: [customerId], references: [id])
-  items             RentalItem[]
-  deliveries        Delivery[]
-  payments          Payment[]
-  invoices          Invoice[]
-  notifications     Notification[]
-
-  @@map("rentals")
-}
-
 enum RentalStatus {
   QUOTATION
   QUOTATION_SENT
@@ -253,52 +319,12 @@ enum RentalStatus {
   RESERVED
 }
 
-model RentalItem {
-  id         String   @id @default(cuid())
-  rentalId   String
-  productId  String
-  productName String  // Product name for display
-  startDate  DateTime? // Individual item start date
-  endDate    DateTime? // Individual item end date
-  quantity   Int
-  rentalType String   // HOURLY, DAILY, WEEKLY, MONTHLY
-  unitPrice  Float
-  totalPrice Float
-  notes      String?
-  invoiceStatus String @default("NOTHING_TO_INVOICE") // FULLY_INVOICED, NOTHING_TO_INVOICE, TO_INVOICE
-  createdAt  DateTime @default(now())
-
-  // Relations
-  rental  Rental  @relation(fields: [rentalId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
-
-  @@map("rental_items")
-}
-
-// Delivery Management
-model Delivery {
-  id          String        @id @default(cuid())
-  rentalId    String
-  type        DeliveryType
-  status      DeliveryStatus @default(SCHEDULED)
-  scheduledAt DateTime
-  completedAt DateTime?
-  address     String
-  contactName String?
-  contactPhone String?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  // Relations
-  rental Rental @relation(fields: [rentalId], references: [id])
-
-  @@map("deliveries")
-}
-
-enum DeliveryType {
-  PICKUP
-  RETURN
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
 }
 
 enum DeliveryStatus {
@@ -308,35 +334,25 @@ enum DeliveryStatus {
   CANCELLED
 }
 
-// Payment Management
-model Payment {
-  id            String        @id @default(cuid())
-  rentalId      String
-  customerId    String
-  amount        Float
-  currency      String        @default("USD")
-  status        PaymentStatus @default(PENDING)
-  method        PaymentMethod
-  transactionId String?
-  stripeIntentId String?
-  description   String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  rental   Rental @relation(fields: [rentalId], references: [id])
-  customer User   @relation(fields: [customerId], references: [id])
-
-  @@map("payments")
+enum DeliveryType {
+  PICKUP
+  RETURN
 }
 
-enum PaymentStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  REFUNDED
-  CANCELLED
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PORTAL
+  PUSH
+}
+
+enum NotificationType {
+  RENTAL_CONFIRMATION
+  PICKUP_REMINDER
+  RETURN_REMINDER
+  PAYMENT_CONFIRMATION
+  LATE_RETURN_WARNING
+  SYSTEM_UPDATE
 }
 
 enum PaymentMethod {
@@ -349,80 +365,11 @@ enum PaymentMethod {
   PAYPAL
 }
 
-// Invoicing
-model Invoice {
-  id          String   @id @default(cuid())
-  rentalId    String
-  customerId  String
-  invoiceNumber String @unique
-  amount      Float
-  tax         Float    @default(0)
-  total       Float
-  status      InvoiceStatus @default(DRAFT)
-  dueDate     DateTime
-  paidAt      DateTime?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  rental   Rental @relation(fields: [rentalId], references: [id])
-  customer User   @relation(fields: [customerId], references: [id])
-
-  @@map("invoices")
-}
-
-enum InvoiceStatus {
-  DRAFT
-  SENT
-  PAID
-  OVERDUE
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
   CANCELLED
 }
-
-// Notifications
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  rentalId  String?
-  type      NotificationType
-  title     String
-  message   String
-  isRead    Boolean          @default(false)
-  sentAt    DateTime         @default(now())
-  readAt    DateTime?
-  channel   NotificationChannel @default(EMAIL)
-
-  // Relations
-  user   User   @relation(fields: [userId], references: [id])
-  rental Rental? @relation(fields: [rentalId], references: [id])
-
-  @@map("notifications")
-}
-
-enum NotificationType {
-  RENTAL_CONFIRMATION
-  PICKUP_REMINDER
-  RETURN_REMINDER
-  PAYMENT_CONFIRMATION
-  LATE_RETURN_WARNING
-  SYSTEM_UPDATE
-}
-
-enum NotificationChannel {
-  EMAIL
-  SMS
-  PORTAL
-  PUSH
-}
-
-// System Settings
-model SystemSetting {
-  id          String @id @default(cuid())
-  key         String @unique
-  value       String
-  description String?
-  updatedAt   DateTime @updatedAt
-
-  @@map("system_settings")
-} 

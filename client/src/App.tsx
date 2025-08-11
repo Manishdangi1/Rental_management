@@ -27,12 +27,17 @@ import VerifyEmailPage from './pages/Auth/VerifyEmailPage';
 import CustomerDashboard from './pages/Customer/CustomerDashboard';
 import CustomerRentals from './pages/Customer/CustomerRentals';
 import CustomerProfile from './pages/Customer/CustomerProfile';
+import CustomerDeliveries from './pages/Customer/CustomerDeliveries';
+import CustomerInvoices from './pages/Customer/CustomerInvoices';
+import CustomerPayments from './pages/Customer/CustomerPayments';
+import CustomerNotifications from './pages/Customer/CustomerNotifications';
 
 // Admin Pages
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import AdminUsers from './pages/Admin/AdminUsers';
 import AdminRentals from './pages/Admin/AdminRentals';
 import AdminProducts from './pages/Admin/AdminProducts';
+import AdminRentalProducts from './pages/Admin/AdminRentalProducts';
 import AdminCategories from './pages/Admin/AdminCategories';
 import AdminReports from './pages/Admin/AdminReports';
 import AdminSettings from './pages/Admin/AdminSettings';
@@ -126,9 +131,11 @@ function App() {
                       path="/customer/dashboard"
                       element={
                         <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <CustomerLayout>
-                            <CustomerDashboard />
-                          </CustomerLayout>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerDashboard />
+                            </CustomerLayout>
+                          </SidebarProvider>
                         </RoleGuard>
                       }
                     />
@@ -136,9 +143,11 @@ function App() {
                       path="/customer/rentals"
                       element={
                         <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <CustomerLayout>
-                            <CustomerRentals />
-                          </CustomerLayout>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerRentals />
+                            </CustomerLayout>
+                          </SidebarProvider>
                         </RoleGuard>
                       }
                     />
@@ -146,9 +155,59 @@ function App() {
                       path="/customer/profile"
                       element={
                         <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <CustomerLayout>
-                            <CustomerProfile />
-                          </CustomerLayout>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerProfile />
+                            </CustomerLayout>
+                          </SidebarProvider>
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="/customer/deliveries"
+                      element={
+                        <RoleGuard allowedRoles={['CUSTOMER']}>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerDeliveries />
+                            </CustomerLayout>
+                          </SidebarProvider>
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="/customer/invoices"
+                      element={
+                        <RoleGuard allowedRoles={['CUSTOMER']}>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerInvoices />
+                            </CustomerLayout>
+                          </SidebarProvider>
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="/customer/payments"
+                      element={
+                        <RoleGuard allowedRoles={['CUSTOMER']}>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerPayments />
+                            </CustomerLayout>
+                          </SidebarProvider>
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="/customer/notifications"
+                      element={
+                        <RoleGuard allowedRoles={['CUSTOMER']}>
+                          <SidebarProvider>
+                            <CustomerLayout>
+                              <CustomerNotifications />
+                            </CustomerLayout>
+                          </SidebarProvider>
                         </RoleGuard>
                       }
                     />
@@ -198,6 +257,18 @@ function App() {
                           <SidebarProvider>
                             <AdminLayout>
                               <AdminProducts />
+                            </AdminLayout>
+                          </SidebarProvider>
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="/admin/rental-products"
+                      element={
+                        <RoleGuard allowedRoles={['ADMIN']}>
+                          <SidebarProvider>
+                            <AdminLayout>
+                              <AdminRentalProducts />
                             </AdminLayout>
                           </SidebarProvider>
                         </RoleGuard>

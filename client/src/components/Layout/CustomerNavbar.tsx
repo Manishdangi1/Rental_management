@@ -32,11 +32,13 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSidebar } from '../../contexts/SidebarContext';
 
 const CustomerNavbar: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();
+  const { sidebarOpen, setSidebarOpen } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -44,6 +46,10 @@ const CustomerNavbar: React.FC = () => {
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleSidebarToggle = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -99,6 +105,18 @@ const CustomerNavbar: React.FC = () => {
     <>
       <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar>
+          {!isMobile && (
+            <IconButton
+              color="inherit"
+              aria-label="toggle sidebar"
+              edge="start"
+              onClick={handleSidebarToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          
           {isMobile && (
             <IconButton
               color="inherit"
@@ -123,15 +141,6 @@ const CustomerNavbar: React.FC = () => {
             >
               Public Site
             </Button>
-
-            <IconButton
-              color="inherit"
-              onClick={() => navigate('/cart')}
-            >
-              <Badge badgeContent={0} color="error">
-                <ShoppingCart />
-              </Badge>
-            </IconButton>
 
             <IconButton
               color="inherit"
@@ -174,6 +183,7 @@ const CustomerNavbar: React.FC = () => {
         </MenuItem>
       </Menu>
 
+      {/* Mobile Drawer */}
       {isMobile && (
         <Drawer
           variant="temporary"
@@ -184,22 +194,9 @@ const CustomerNavbar: React.FC = () => {
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      )}
-
-      {!isMobile && (
-        <Drawer
-          variant="permanent"
-          sx={{
-            width: 240,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: 240,
-              boxSizing: 'border-box',
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: 280,
               top: 64,
               height: 'calc(100% - 64px)',
             },
@@ -209,16 +206,28 @@ const CustomerNavbar: React.FC = () => {
         </Drawer>
       )}
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - 240px)` },
-          ml: { sm: '240px' },
-          mt: '64px',
-        }}
-      />
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Drawer
+          variant="persistent"
+          open={sidebarOpen}
+          sx={{
+            width: sidebarOpen ? 280 : 0,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: 280,
+              boxSizing: 'border-box',
+              top: 64,
+              height: 'calc(100% - 64px)',
+              borderRight: 1,
+              borderColor: 'divider',
+              backgroundColor: 'background.paper',
+            },
+          }}
+        >
+          {drawer}
+        </Drawer>
+      )}
     </>
   );
 };

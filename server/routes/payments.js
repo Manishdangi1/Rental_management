@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
       where,
       include: {
         rental: true,
-        customer: {
+        users: {
           select: {
             id: true,
             firstName: true,
@@ -30,8 +30,38 @@ router.get('/', authenticateToken, async (req, res) => {
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    // Transform the data to match frontend expectations and ensure all required fields are present
+    const transformedPayments = payments.map(payment => ({
+      id: payment.id,
+      paymentNumber: payment.id, // Using ID as payment number
+      invoiceId: payment.rentalId, // Using rental ID as invoice ID
+      invoiceNumber: `INV-${payment.rentalId}`, // Generating invoice number
+      rentalId: payment.rentalId,
+      orderNumber: payment.rentalId, // Using rental ID as order number
+      amount: payment.amount || 0,
+      currency: payment.currency || 'USD',
+      status: payment.status || 'PENDING',
+      method: payment.method || 'CREDIT_CARD',
+      methodDetails: {
+        type: payment.method || 'CREDIT_CARD',
+        last4: '****',
+        brand: payment.method || 'CREDIT_CARD',
+        accountNumber: payment.transactionId || 'N/A',
+        bankName: 'N/A'
+      },
+      transactionId: payment.transactionId || null,
+      authorizationCode: payment.stripeIntentId || null,
+      processedDate: payment.createdAt,
+      failureReason: payment.status === 'FAILED' ? 'Payment failed' : null,
+      refundReason: payment.status === 'REFUNDED' ? 'Refunded' : null,
+      refundDate: payment.status === 'REFUNDED' ? payment.updatedAt : null,
+      securityDeposit: false,
+      description: payment.description || `Payment for rental ${payment.rentalId}`,
+      metadata: {}
+    }));
     
-    res.json(payments);
+    res.json(transformedPayments);
   } catch (error) {
     console.error('Error fetching payments:', error);
     res.status(500).json({ error: 'Failed to fetch payments' });
@@ -50,15 +80,45 @@ router.get('/:id', [
       where: { id },
       include: {
         rental: true,
-        customer: true
+        users: true
       }
     });
     
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
+
+    // Transform the data to match frontend expectations
+    const transformedPayment = {
+      id: payment.id,
+      paymentNumber: payment.id,
+      invoiceId: payment.rentalId,
+      invoiceNumber: `INV-${payment.rentalId}`,
+      rentalId: payment.rentalId,
+      orderNumber: payment.rentalId,
+      amount: payment.amount || 0,
+      currency: payment.currency || 'USD',
+      status: payment.status || 'PENDING',
+      method: payment.method || 'CREDIT_CARD',
+      methodDetails: {
+        type: payment.method || 'CREDIT_CARD',
+        last4: '****',
+        brand: payment.method || 'CREDIT_CARD',
+        accountNumber: payment.transactionId || 'N/A',
+        bankName: 'N/A'
+      },
+      transactionId: payment.transactionId || null,
+      authorizationCode: payment.stripeIntentId || null,
+      processedDate: payment.createdAt,
+      failureReason: payment.status === 'FAILED' ? 'Payment failed' : null,
+      refundReason: payment.status === 'REFUNDED' ? 'Refunded' : null,
+      refundDate: payment.status === 'REFUNDED' ? payment.updatedAt : null,
+      securityDeposit: false,
+      description: payment.description || `Payment for rental ${payment.rentalId}`,
+      metadata: {}
+    };
     
-    res.json(payment);
+    res.json(transformedPayment);
   } catch (error) {
     console.error('Error fetching payment:', error);
     res.status(500).json({ error: 'Failed to fetch payment' });
@@ -100,11 +160,41 @@ router.post('/', [
       },
       include: {
         rental: true,
-        customer: true
+        users: true
       }
     });
+
+    // Transform the data to match frontend expectations
+    const transformedPayment = {
+      id: payment.id,
+      paymentNumber: payment.id,
+      invoiceId: payment.rentalId,
+      invoiceNumber: `INV-${payment.rentalId}`,
+      rentalId: payment.rentalId,
+      orderNumber: payment.rentalId,
+      amount: payment.amount || 0,
+      currency: payment.currency || 'USD',
+      status: payment.status || 'PENDING',
+      method: payment.method || 'CREDIT_CARD',
+      methodDetails: {
+        type: payment.method || 'CREDIT_CARD',
+        last4: '****',
+        brand: payment.method || 'CREDIT_CARD',
+        accountNumber: payment.transactionId || 'N/A',
+        bankName: 'N/A'
+      },
+      transactionId: payment.transactionId || null,
+      authorizationCode: payment.stripeIntentId || null,
+      processedDate: payment.createdAt,
+      failureReason: payment.status === 'FAILED' ? 'Payment failed' : null,
+      refundReason: payment.status === 'REFUNDED' ? 'Refunded' : null,
+      refundDate: payment.status === 'REFUNDED' ? payment.updatedAt : null,
+      securityDeposit: false,
+      description: payment.description || `Payment for rental ${payment.rentalId}`,
+      metadata: {}
+    };
     
-    res.status(201).json(payment);
+    res.status(201).json(transformedPayment);
   } catch (error) {
     console.error('Error creating payment:', error);
     res.status(500).json({ error: 'Failed to create payment' });

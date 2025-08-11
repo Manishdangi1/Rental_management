@@ -14,12 +14,13 @@ const rentalRoutes = require('./routes/rentals');
 const paymentRoutes = require('./routes/payments');
 const deliveryRoutes = require('./routes/deliveries');
 const userRoutes = require('./routes/users');
+const adminRoutes = require('./routes/admin');
+const customerRoutes = require('./routes/customer');
 const categoryRoutes = require('./routes/categories');
 const pricelistRoutes = require('./routes/pricelists');
 const invoiceRoutes = require('./routes/invoices');
 const notificationRoutes = require('./routes/notifications');
 const reportRoutes = require('./routes/reports');
-const adminRoutes = require('./routes/admin');
 
 // Security middleware
 app.use(helmet());
@@ -86,12 +87,13 @@ app.use('/api/rentals', rentalRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/customer', customerRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/pricelists', pricelistRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
