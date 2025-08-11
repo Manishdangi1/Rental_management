@@ -6,10 +6,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 // Components
-import Layout from './components/Layout/Layout';
-import Navbar from './components/Layout/Navbar';
-import Sidebar from './components/Layout/Sidebar';
 import ErrorBoundary from './components/ErrorBoundary';
+import AuthGuard from './components/Auth/AuthGuard';
+import Navbar from './components/Layout/Navbar';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -17,6 +16,9 @@ import ProductsPage from './pages/ProductsPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
+import ForgotPasswordPage from './pages/Auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
+import VerifyEmailPage from './pages/Auth/VerifyEmailPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import RentalsPage from './pages/Rentals/RentalsPage';
 import RentalDetailPage from './pages/Rentals/RentalDetailPage';
@@ -25,9 +27,16 @@ import RentalCheckout from './pages/Rentals/RentalCheckout';
 import ProfilePage from './pages/Profile/ProfilePage';
 import CartPage from './pages/Cart/CartPage';
 import CheckoutPage from './pages/Checkout/CheckoutPage';
+import StaffDashboardOverview from './pages/Dashboard/Staff/StaffDashboardOverview';
+import StaffQuotationsPage from './pages/Dashboard/Staff/StaffQuotationsPage';
+import StaffRentalsPage from './pages/Dashboard/Staff/StaffRentalsPage';
+import StaffRevenuePage from './pages/Dashboard/Staff/StaffRevenuePage';
+import StaffTopCategoriesPage from './pages/Dashboard/Staff/StaffTopCategoriesPage';
+import StaffTopProductsPage from './pages/Dashboard/Staff/StaffTopProductsPage';
+import StaffTopCustomersPage from './pages/Dashboard/Staff/StaffTopCustomersPage';
 
 // Context
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 
 // Create theme
@@ -79,36 +88,6 @@ const theme = createTheme({
   },
 });
 
-// Protected Route Component
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <div>Loading...</div>
-      </Box>
-    );
-  }
-
-  return user ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
-// Admin Route Component
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <div>Loading...</div>
-      </Box>
-    );
-  }
-
-  return user && user.role === 'ADMIN' ? <>{children}</> : <Navigate to="/" replace />;
-};
-
 function App() {
   return (
     <ErrorBoundary>
@@ -119,99 +98,191 @@ function App() {
             <CartProvider>
               <Router>
                 <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                  <Navbar />
-                  <Box sx={{ display: 'flex', flex: 1 }}>
-                    <Sidebar />
-                    <Layout>
-                      <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/products" element={<ProductsPage />} />
-                        <Route path="/products/:id" element={<ProductDetailPage />} />
-                        <Route path="/login" element={<LoginPage />} />
-                        <Route path="/register" element={<RegisterPage />} />
+                  <Routes>
+                    {/* Default Route - Redirect to Login */}
+                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    
+                    {/* Authentication Routes - No Navigation */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
+                    <Route path="/verify-email" element={<VerifyEmailPage />} />
+                    
+                    {/* Public Product Routes (can be accessed without login) */}
+                    <Route path="/products" element={<ProductsPage />} />
+                    <Route path="/products/:id" element={<ProductDetailPage />} />
+                    <Route path="/home" element={<HomePage />} />
 
-                        {/* Protected Routes */}
-                        <Route
-                          path="/dashboard"
-                          element={
-                            <ProtectedRoute>
-                              <DashboardPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/rentals"
-                          element={
-                            <ProtectedRoute>
-                              <RentalsPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/rentals/:id"
-                          element={
-                            <ProtectedRoute>
-                              <RentalDetailPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/rentals/new"
-                          element={
-                            <ProtectedRoute>
-                              <RentalProductSelection />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/rentals/checkout"
-                          element={
-                            <ProtectedRoute>
-                              <RentalCheckout />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/profile"
-                          element={
-                            <ProtectedRoute>
-                              <ProfilePage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/cart"
-                          element={
-                            <ProtectedRoute>
-                              <CartPage />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/checkout"
-                          element={
-                            <ProtectedRoute>
-                              <CheckoutPage />
-                            </ProtectedRoute>
-                          }
-                        />
+                    {/* Protected Routes - With Navigation */}
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffDashboardOverview />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/quotations"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffQuotationsPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/rentals"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffRentalsPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/revenue"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffRevenuePage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/top-categories"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffTopCategoriesPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/top-products"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffTopProductsPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/dashboard/top-customers"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <StaffTopCustomersPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rentals"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <RentalsPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rentals/:id"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <RentalDetailPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rentals/new"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <RentalProductSelection />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/rentals/checkout"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <RentalCheckout />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <ProfilePage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/cart"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <CartPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
+                    <Route
+                      path="/checkout"
+                      element={
+                        <AuthGuard>
+                          <>
+                            <Navbar />
+                            <CheckoutPage />
+                          </>
+                        </AuthGuard>
+                      }
+                    />
 
-                        {/* Admin Routes */}
-                        <Route
-                          path="/admin/*"
-                          element={
-                            <AdminRoute>
-                              <div>Admin Panel (Coming Soon)</div>
-                            </AdminRoute>
-                          }
-                        />
+                    {/* Admin Routes */}
+                    <Route
+                      path="/admin/*"
+                      element={
+                        <AuthGuard requireRole={['ADMIN']}>
+                          <div>Admin Panel (Coming Soon)</div>
+                        </AuthGuard>
+                      }
+                    />
 
-                        {/* 404 Route */}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                      </Routes>
-                    </Layout>
-                  </Box>
+                    {/* 404 Route - Redirect to Login */}
+                    <Route path="*" element={<Navigate to="/login" replace />} />
+                  </Routes>
                 </Box>
               </Router>
             </CartProvider>

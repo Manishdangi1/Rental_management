@@ -13,7 +13,7 @@ export interface User {
   state?: string;
   zipCode?: string;
   country?: string;
-  role: 'CUSTOMER' | 'STAFF' | 'ADMIN';
+  role: 'CUSTOMER' | 'ADMIN';
   isActive: boolean;
   emailVerified: boolean;
   profileImage?: string;
@@ -29,7 +29,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role?: 'CUSTOMER' | 'ADMIN') => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
   updateProfile: (userData: Partial<User>) => Promise<void>;
@@ -41,6 +41,7 @@ interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
+  role: 'CUSTOMER' | 'ADMIN';
   phone?: string;
   address?: string;
   city?: string;
@@ -167,11 +168,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Login function
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: 'CUSTOMER' | 'ADMIN') => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await axios.post('/api/auth/login', { email, password, role });
       const { user, token } = response.data;
+      
+      // Validate that the user's actual role matches the expected role (if specified)
+      if (role && user.role !== role) {
+        const errorMessage = `This account is registered as a ${user.role}, not a ${role}. Please select the correct role or contact support.`;
+        dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+        throw new Error(errorMessage);
+      }
       
       // Store token in localStorage
       localStorage.setItem('token', token);
@@ -223,6 +231,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     delete axios.defaults.headers.common['Authorization'];
     
     dispatch({ type: 'AUTH_LOGOUT' });
+    
+    // Force page reload to clear any cached state
+    window.location.href = '/login';
   };
 
   // Update profile function
