@@ -62,23 +62,6 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'staff@rentpro.com',
-        password: hashedPassword,
-        firstName: 'Sarah',
-        lastName: 'Staff',
-        phone: '+1-555-100-0002',
-        address: '456 Staff Ave',
-        city: 'Tech City',
-        state: 'TC',
-        zipCode: '12345',
-        country: 'USA',
-        role: 'STAFF',
-        isActive: true,
-        emailVerified: true
-      }
-    }),
-    prisma.user.create({
-      data: {
         email: 'customer1@example.com',
         password: hashedPassword,
         firstName: 'Mike',
@@ -478,11 +461,15 @@ async function main() {
   const rentals = await Promise.all([
     prisma.rental.create({
       data: {
-        customerId: users[2].id, // Mike Customer
-        status: 'COMPLETED',
+        orderNumber: 'RO-2024-001',
+        customerId: users[1].id, // Mike Customer (was users[2])
+        customerName: 'Mike Customer',
+        status: 'RETURNED',
         startDate: new Date('2024-07-01'),
         endDate: new Date('2024-07-03'),
         totalAmount: 150.00,
+        subtotal: 150.00,
+        tax: 0.00,
         securityDeposit: 30.00,
         pickupAddress: '789 Customer Rd, Tech City, TC 12345',
         returnAddress: '789 Customer Rd, Tech City, TC 12345',
@@ -491,11 +478,15 @@ async function main() {
     }),
     prisma.rental.create({
       data: {
-        customerId: users[3].id, // Lisa Business
-        status: 'IN_PROGRESS',
+        orderNumber: 'RO-2024-002',
+        customerId: users[2].id, // Lisa Business (was users[3])
+        customerName: 'Lisa Business',
+        status: 'PICKED_UP',
         startDate: new Date('2024-08-10'),
         endDate: new Date('2024-08-15'),
         totalAmount: 450.00,
+        subtotal: 450.00,
+        tax: 0.00,
         securityDeposit: 90.00,
         pickupAddress: '321 Business Blvd, Tech City, TC 12345',
         returnAddress: '321 Business Blvd, Tech City, TC 12345',
@@ -504,11 +495,15 @@ async function main() {
     }),
     prisma.rental.create({
       data: {
-        customerId: users[4].id, // David Contractor
-        status: 'CONFIRMED',
+        orderNumber: 'RO-2024-003',
+        customerId: users[3].id, // David Contractor (was users[4])
+        customerName: 'David Contractor',
+        status: 'QUOTATION_SENT',
         startDate: new Date('2024-08-20'),
         endDate: new Date('2024-09-20'),
         totalAmount: 1200.00,
+        subtotal: 1200.00,
+        tax: 0.00,
         securityDeposit: 240.00,
         pickupAddress: '654 Contractor Ct, Tech City, TC 12345',
         returnAddress: '654 Contractor Ct, Tech City, TC 12345',
@@ -524,7 +519,11 @@ async function main() {
       data: {
         rentalId: rentals[0].id,
         productId: products[0].id, // Drill Set
+        productName: 'Professional Drill Set',
+        startDate: new Date('2024-07-01'),
+        endDate: new Date('2024-07-03'),
         quantity: 1,
+        rentalType: 'DAILY',
         unitPrice: 50.00,
         totalPrice: 50.00,
         notes: 'Customer was very satisfied with the quality'
@@ -534,7 +533,11 @@ async function main() {
       data: {
         rentalId: rentals[1].id,
         productId: products[1].id, // Party Tent
+        productName: 'Party Tent 20x30',
+        startDate: new Date('2024-08-10'),
+        endDate: new Date('2024-08-15'),
         quantity: 1,
+        rentalType: 'DAILY',
         unitPrice: 150.00,
         totalPrice: 150.00,
         notes: 'Event setup completed successfully'
@@ -544,7 +547,11 @@ async function main() {
       data: {
         rentalId: rentals[1].id,
         productId: products[3].id, // Projector
+        productName: 'Projector HD',
+        startDate: new Date('2024-08-10'),
+        endDate: new Date('2024-08-15'),
         quantity: 1,
+        rentalType: 'DAILY',
         unitPrice: 90.00,
         totalPrice: 90.00,
         notes: 'Event setup completed successfully'
@@ -554,7 +561,11 @@ async function main() {
       data: {
         rentalId: rentals[2].id,
         productId: products[2].id, // Excavator
+        productName: 'Excavator Mini',
+        startDate: new Date('2024-08-20'),
+        endDate: new Date('2024-09-20'),
         quantity: 1,
+        rentalType: 'DAILY',
         unitPrice: 40.00,
         totalPrice: 40.00,
         notes: 'Construction project in progress'
@@ -612,7 +623,7 @@ async function main() {
     prisma.payment.create({
       data: {
         rentalId: rentals[0].id,
-        customerId: users[2].id,
+        customerId: users[1].id, // Mike Customer (was users[2])
         amount: 150.00,
         currency: 'USD',
         status: 'COMPLETED',
@@ -624,7 +635,7 @@ async function main() {
     prisma.payment.create({
       data: {
         rentalId: rentals[1].id,
-        customerId: users[3].id,
+        customerId: users[2].id, // Lisa Business (was users[3])
         amount: 450.00,
         currency: 'USD',
         status: 'COMPLETED',
@@ -636,7 +647,7 @@ async function main() {
     prisma.payment.create({
       data: {
         rentalId: rentals[2].id,
-        customerId: users[4].id,
+        customerId: users[3].id, // David Contractor (was users[4])
         amount: 1200.00,
         currency: 'USD',
         status: 'PENDING',
@@ -652,7 +663,7 @@ async function main() {
     prisma.invoice.create({
       data: {
         rentalId: rentals[0].id,
-        customerId: users[2].id,
+        customerId: users[1].id, // Mike Customer (was users[2])
         invoiceNumber: 'INV-2024-001',
         amount: 150.00,
         tax: 12.00,
@@ -666,7 +677,7 @@ async function main() {
     prisma.invoice.create({
       data: {
         rentalId: rentals[1].id,
-        customerId: users[3].id,
+        customerId: users[2].id, // Lisa Business (was users[3])
         invoiceNumber: 'INV-2024-002',
         amount: 450.00,
         tax: 36.00,
@@ -680,7 +691,7 @@ async function main() {
     prisma.invoice.create({
       data: {
         rentalId: rentals[2].id,
-        customerId: users[4].id,
+        customerId: users[3].id, // David Contractor (was users[4])
         invoiceNumber: 'INV-2024-003',
         amount: 1200.00,
         tax: 96.00,
@@ -697,7 +708,7 @@ async function main() {
   const notifications = await Promise.all([
     prisma.notification.create({
       data: {
-        userId: users[2].id,
+        userId: users[1].id, // Mike Customer (was users[2])
         rentalId: rentals[0].id,
         type: 'RENTAL_CONFIRMATION',
         title: 'Rental Confirmed',
@@ -708,7 +719,7 @@ async function main() {
     }),
     prisma.notification.create({
       data: {
-        userId: users[2].id,
+        userId: users[1].id, // Mike Customer (was users[2])
         rentalId: rentals[0].id,
         type: 'PICKUP_REMINDER',
         title: 'Pickup Reminder',
@@ -719,7 +730,7 @@ async function main() {
     }),
     prisma.notification.create({
       data: {
-        userId: users[2].id,
+        userId: users[1].id, // Mike Customer (was users[2])
         rentalId: rentals[0].id,
         type: 'RETURN_REMINDER',
         title: 'Return Reminder',
@@ -730,7 +741,7 @@ async function main() {
     }),
     prisma.notification.create({
       data: {
-        userId: users[3].id,
+        userId: users[2].id, // Lisa Business (was users[3])
         rentalId: rentals[1].id,
         type: 'RENTAL_CONFIRMATION',
         title: 'Rental Confirmed',
@@ -741,7 +752,7 @@ async function main() {
     }),
     prisma.notification.create({
       data: {
-        userId: users[4].id,
+        userId: users[3].id, // David Contractor (was users[4])
         rentalId: rentals[2].id,
         type: 'RENTAL_CONFIRMATION',
         title: 'Rental Confirmed',

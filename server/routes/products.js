@@ -209,8 +209,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new product (Admin/Staff only)
-router.post('/', authenticateToken, requireRole(['ADMIN', 'STAFF']), productValidation, async (req, res) => {
+// Create new product (Admin only)
+router.post('/', authenticateToken, requireRole(['ADMIN']), productValidation, async (req, res) => {
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -295,8 +295,8 @@ router.post('/', authenticateToken, requireRole(['ADMIN', 'STAFF']), productVali
   }
 });
 
-// Update product (Admin/Staff only)
-router.put('/:id', authenticateToken, requireRole(['ADMIN', 'STAFF']), productValidation, async (req, res) => {
+// Update product (Admin only)
+router.put('/:id', authenticateToken, requireRole(['ADMIN']), productValidation, async (req, res) => {
   try {
     // Check validation errors
     const errors = validationResult(req);
@@ -491,6 +491,320 @@ router.get('/:id/availability', [
     console.error('Availability check error:', error);
     res.status(500).json({
       error: 'Availability check failed',
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get rental availability for a product
+router.get('/:id/availability', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        error: 'Missing dates',
+        message: 'Start date and end date are required'
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      return res.status(400).json({
+        error: 'Invalid date range',
+        message: 'Start date must be before end date'
+      });
+    }
+
+    // Get product with current availability
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        totalQuantity: true,
+        availableQuantity: true,
+        minimumRentalDays: true,
+        maximumRentalDays: true
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        error: 'Product not found',
+        message: 'Product with this ID does not exist'
+      });
+    }
+
+    // Calculate availability for the date range
+    const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff < product.minimumRentalDays) {
+      return res.status(400).json({
+        error: 'Invalid rental duration',
+        message: `Minimum rental duration is ${product.minimumRentalDays} days`
+      });
+    }
+
+    if (product.maximumRentalDays && daysDiff > product.maximumRentalDays) {
+      return res.status(400).json({
+        error: 'Invalid rental duration',
+        message: `Maximum rental duration is ${product.maximumRentalDays} days`
+      });
+    }
+
+    // Check if product is available for the entire duration
+    const isAvailable = product.availableQuantity > 0;
+
+    res.json({
+      productId: product.id,
+      productName: product.name,
+      startDate: start,
+      endDate: end,
+      duration: daysDiff,
+      totalQuantity: product.totalQuantity,
+      availableQuantity: product.availableQuantity,
+      isAvailable,
+      minimumRentalDays: product.minimumRentalDays,
+      maximumRentalDays: product.maximumRentalDays
+    });
+
+  } catch (error) {
+    console.error('Availability check error:', error);
+    res.status(500).json({
+      error: 'Availability check failed',
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Calculate rental price for a product
+router.post('/:id/calculate-price', [
+  body('startDate').isISO8601().withMessage('Valid start date is required'),
+  body('endDate').isISO8601().withMessage('Valid end date is required'),
+  body('rentalType').isIn(['HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']).withMessage('Valid rental type is required'),
+  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { id } = req.params;
+    const { startDate, endDate, rentalType, quantity } = req.body;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (start >= end) {
+      return res.status(400).json({
+        error: 'Invalid date range',
+        message: 'Start date must be before end date'
+      });
+    }
+
+    // Get product with pricing
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        pricelistItems: {
+          where: {
+            rentalType: rentalType,
+            pricelist: { isActive: true }
+          },
+          select: {
+            price: true,
+            currency: true,
+            discount: true,
+            discountType: true,
+            minimumDays: true,
+            maximumDays: true,
+            seasonalMultiplier: true
+          }
+        }
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        error: 'Product not found',
+        message: 'Product with this ID does not exist'
+      });
+    }
+
+    if (product.pricelistItems.length === 0) {
+      return res.status(400).json({
+        error: 'No pricing available',
+        message: `No pricing found for ${rentalType} rental type`
+      });
+    }
+
+    const pricing = product.pricelistItems[0];
+    
+    // Calculate duration based on rental type
+    let duration;
+    let unitPrice = pricing.price;
+    
+    switch (rentalType) {
+      case 'HOURLY':
+        duration = Math.ceil((end - start) / (1000 * 60 * 60));
+        break;
+      case 'DAILY':
+        duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+        break;
+      case 'WEEKLY':
+        duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24 * 7));
+        break;
+      case 'MONTHLY':
+        duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24 * 30));
+        break;
+      case 'YEARLY':
+        duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24 * 365));
+        break;
+    }
+
+    // Apply seasonal multiplier if applicable
+    if (pricing.seasonalMultiplier) {
+      unitPrice *= pricing.seasonalMultiplier;
+    }
+
+    // Calculate subtotal
+    let subtotal = unitPrice * duration * quantity;
+
+    // Apply discount
+    let discountAmount = 0;
+    if (pricing.discount > 0) {
+      if (pricing.discountType === 'PERCENTAGE') {
+        discountAmount = subtotal * (pricing.discount / 100);
+      } else {
+        discountAmount = pricing.discount;
+      }
+    }
+
+    const finalPrice = subtotal - discountAmount;
+
+    res.json({
+      productId: product.id,
+      productName: product.name,
+      rentalType,
+      startDate: start,
+      endDate: end,
+      duration,
+      quantity,
+      unitPrice,
+      subtotal,
+      discountAmount,
+      finalPrice,
+      currency: pricing.currency,
+      pricingDetails: {
+        basePrice: pricing.price,
+        seasonalMultiplier: pricing.seasonalMultiplier,
+        discount: pricing.discount,
+        discountType: pricing.discountType
+      }
+    });
+
+  } catch (error) {
+    console.error('Price calculation error:', error);
+    res.status(500).json({
+      error: 'Price calculation failed',
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get rental products (admin only)
+router.get('/admin/rental-products', [
+  authenticateToken,
+  requireRole(['ADMIN'])
+], async (req, res) => {
+  try {
+    const { page = 1, limit = 20, category, search, status } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where = {
+      isRentable: true
+    };
+
+    if (category) {
+      where.categoryId = category;
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { sku: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    if (status) {
+      where.isActive = status === 'active';
+    }
+
+    // Get rental products with detailed information
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        category: {
+          select: { id: true, name: true }
+        },
+        productImages: {
+          where: { isPrimary: true },
+          select: { imageUrl: true }
+        },
+        pricelistItems: {
+          where: { pricelist: { isActive: true } },
+          select: {
+            rentalType: true,
+            price: true,
+            currency: true
+          }
+        },
+        _count: {
+          select: {
+            rentalItems: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: parseInt(skip),
+      take: parseInt(limit)
+    });
+
+    // Get total count
+    const totalProducts = await prisma.product.count({ where });
+
+    // Add rental statistics
+    const productsWithStats = products.map(product => ({
+      ...product,
+      totalRentals: product._count.rentalItems,
+      _count: undefined
+    }));
+
+    res.json({
+      products: productsWithStats,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalProducts / limit),
+        totalProducts,
+        hasNext: page < Math.ceil(totalProducts / limit),
+        hasPrev: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Rental products fetch error:', error);
+    res.status(500).json({
+      error: 'Rental products fetch failed',
       message: 'Internal server error'
     });
   }

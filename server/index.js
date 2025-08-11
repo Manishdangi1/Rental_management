@@ -19,6 +19,7 @@ const pricelistRoutes = require('./routes/pricelists');
 const invoiceRoutes = require('./routes/invoices');
 const notificationRoutes = require('./routes/notifications');
 const reportRoutes = require('./routes/reports');
+const adminRoutes = require('./routes/admin');
 
 // Security middleware
 app.use(helmet());
@@ -90,6 +91,7 @@ app.use('/api/pricelists', pricelistRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

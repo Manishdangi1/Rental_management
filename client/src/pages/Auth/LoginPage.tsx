@@ -1,62 +1,92 @@
-import React, { useState, useEffect } from 'react';
-import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
 import {
-  Container,
   Box,
+  Container,
+  Paper,
   Typography,
   TextField,
   Button,
   Link,
-  Paper,
   Alert,
+  InputAdornment,
+  IconButton,
+  useTheme,
+  useMediaQuery,
+  FormControl,
+  FormLabel,
+  RadioGroup,
   FormControlLabel,
-  Switch,
-  Chip,
-  Stack,
-  Divider
+  Radio,
+  Divider,
+  Switch
 } from '@mui/material';
+import {
+  Visibility,
+  VisibilityOff,
+  Email,
+  Lock,
+  Person,
+  AdminPanelSettings
+} from '@mui/icons-material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'CUSTOMER' | 'ADMIN'>('CUSTOMER');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { login } = useAuth();
 
-  // Check for success message from navigation state
-  useEffect(() => {
-    if (location.state?.message) {
-      setError(''); // Clear any existing errors
-    }
-  }, [location.state]);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    role: 'CUSTOMER' as 'CUSTOMER' | 'ADMIN',
+    rememberMe: false
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleRoleChange = (newRole: 'CUSTOMER' | 'ADMIN') => {
-    setRole(newRole);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, checked, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
-      setError('');
-      setLoading(true);
-      await login(email, password, role);
+      console.log('LoginPage: Attempting login with:', { email: formData.email, role: formData.role });
       
-      // Redirect to dashboard after successful login
-      navigate('/dashboard', { 
-        state: { 
-          message: `Welcome back, ${email}! You are now logged in as a ${role === 'CUSTOMER' ? 'Customer' : 'Administrator/Staff Member'}.` 
-        } 
-      });
+      // Pass the selected role to the login function
+      await login(formData.email, formData.password, formData.role);
+      
+      console.log('LoginPage: Login successful, redirecting...');
+      // Redirect based on user role will be handled by AuthContext
     } catch (err: any) {
-      setError(err.message || 'Failed to log in. Please check your credentials.');
+      console.error('LoginPage: Login error:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -78,7 +108,18 @@ const LoginPage: React.FC = () => {
             width: '100%',
             borderRadius: 3,
             background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            animation: 'slideInUp 0.6s ease-out',
+            '@keyframes slideInUp': {
+              '0%': {
+                opacity: 0,
+                transform: 'translateY(30px)',
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'translateY(0)',
+              },
+            },
           }}
         >
           {/* Header Section */}
@@ -98,101 +139,169 @@ const LoginPage: React.FC = () => {
               Sign in to your account to continue
             </Typography>
           </Box>
-          
-          {/* Role Selection */}
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select your role:
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-              {[
-                { value: 'CUSTOMER', label: 'Customer', color: 'primary' },
-                { value: 'ADMIN', label: 'Admin/Staff', color: 'secondary' }
-              ].map((roleOption) => (
-                <Chip
-                  key={roleOption.value}
-                  label={roleOption.label}
-                  color={role === roleOption.value ? 'primary' : 'default'}
-                  variant={role === roleOption.value ? 'filled' : 'outlined'}
-                  onClick={() => handleRoleChange(roleOption.value as any)}
-                  sx={{ 
-                    cursor: 'pointer',
-                    '&:hover': { opacity: 0.8 }
-                  }}
-                />
-              ))}
-            </Stack>
-          </Box>
-          
-          {/* Messages */}
-          {location.state?.message && (
-            <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
-              {location.state.message}
-            </Alert>
-          )}
-          
+
+          {/* Error Alert */}
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
-          
+
           {/* Login Form */}
           <Box component="form" onSubmit={handleSubmit}>
             <TextField
-              margin="normal"
-              required
               fullWidth
-              id="email"
               label="Email Address"
               name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 2,
-                  '&:hover fieldset': {
-                    borderColor: 'primary.main',
-                  },
-                },
-              }}
-            />
-            <TextField
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
               margin="normal"
               required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="action" />
+                  </InputAdornment>
+                ),
+              }}
               sx={{
+                mb: 2,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover fieldset': {
                     borderColor: 'primary.main',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                    borderWidth: 2,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  '&.Mui-focused': {
+                    color: 'primary.main',
                   },
                 },
               }}
             />
-            
-            {/* Submit Button */}
+
+            <TextField
+              fullWidth
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={handleChange}
+              margin="normal"
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleTogglePasswordVisibility}
+                      edge="end"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'primary.light',
+                          color: 'white',
+                        },
+                        transition: 'all 0.2s ease-in-out',
+                      }}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover fieldset': {
+                    borderColor: 'primary.main',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                    borderWidth: 2,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  '&.Mui-focused': {
+                    color: 'primary.main',
+                  },
+                },
+              }}
+            />
+
+            {/* Role Selection */}
+            <FormControl component="fieldset" fullWidth sx={{ mb: 3 }}>
+              <FormLabel component="legend" sx={{ mb: 1, textAlign: 'center' }}>
+                Sign in as:
+              </FormLabel>
+              <RadioGroup
+                row
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                sx={{ justifyContent: 'space-around' }}
+              >
+                <FormControlLabel
+                  value="CUSTOMER"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Person fontSize="small" />
+                      Customer
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="ADMIN"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <AdminPanelSettings fontSize="small" />
+                      Admin
+                    </Box>
+                  }
+                />
+              </RadioGroup>
+            </FormControl>
+
+            {/* Remember Me Toggle */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                  name="rememberMe"
+                  color="primary"
+                />
+              }
+              label="Remember me"
+              sx={{ mb: 3 }}
+            />
+
             <Button
               type="submit"
               fullWidth
               variant="contained"
               size="large"
-              sx={{ 
-                mt: 4, 
-                mb: 3,
+              disabled={loading}
+              sx={{
                 py: 1.5,
-                borderRadius: 2,
+                mb: 3,
                 fontSize: '1.1rem',
-                fontWeight: 600,
+                fontWeight: 'bold',
+                borderRadius: 2,
                 textTransform: 'none',
                 boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
                 '&:hover': {
@@ -201,55 +310,74 @@ const LoginPage: React.FC = () => {
                 },
                 transition: 'all 0.2s ease-in-out'
               }}
-              disabled={loading}
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </Button>
-            
-            {/* Divider */}
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                or
-              </Typography>
-            </Divider>
-            
-            {/* Links Section */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Link 
-                component={RouterLink} 
-                to="/forgot-password" 
-                variant="body2"
-                sx={{ 
-                  display: 'block',
-                  mb: 2,
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                Forgot your password?
-              </Link>
-              <Typography variant="body2" color="text.secondary" component="span">
-                Don't have an account?{' '}
-              </Typography>
-              <Link 
-                component={RouterLink} 
-                to="/register" 
-                variant="body2"
-                sx={{ 
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                Sign Up
-              </Link>
-            </Box>
+          </Box>
+
+          {/* Links */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Link
+              component={RouterLink}
+              to="/forgot-password"
+              variant="body2"
+              color="primary"
+              sx={{ 
+                textDecoration: 'none', 
+                fontWeight: 600,
+                '&:hover': { 
+                  textDecoration: 'underline' 
+                } 
+              }}
+            >
+              Forgot your password?
+            </Link>
+          </Box>
+
+          {/* Divider */}
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              or
+            </Typography>
+          </Divider>
+
+          {/* Create Account Section */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" component="span">
+              Don't have an account?{' '}
+            </Typography>
+            <Button
+              component={RouterLink}
+              to="/register"
+              variant="outlined"
+              fullWidth
+              size="large"
+              sx={{ 
+                mt: 1,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                '&:hover': {
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Create Account
+            </Button>
+          </Box>
+
+          {/* Demo Accounts */}
+          <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              <strong>Demo Accounts:</strong>
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+              <strong>Customer:</strong> customer1@example.com / password123
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block">
+              <strong>Admin:</strong> admin@rentpro.com / password123
+            </Typography>
           </Box>
         </Paper>
       </Container>

@@ -153,6 +153,12 @@ router.post('/login', loginValidation, async (req, res) => {
       });
     }
 
+    // Update last login timestamp
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
@@ -198,6 +204,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
         isActive: true,
         emailVerified: true,
         profileImage: true,
+        lastLogin: true,
         createdAt: true,
         updatedAt: true
       }
@@ -348,9 +355,27 @@ router.put('/change-password', authenticateToken, [
 // Refresh token (optional - for better security)
 router.post('/refresh', authenticateToken, async (req, res) => {
   try {
+    // Check if user is still active
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true
+      }
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        error: 'User inactive',
+        message: 'User account is deactivated'
+      });
+    }
+
     // Generate new token
     const token = jwt.sign(
-      { userId: req.user.id, email: req.user.email, role: req.user.role },
+      { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -362,8 +387,80 @@ router.post('/refresh', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('Token refresh error:', error);
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'Token expired',
+        message: 'Please login again'
+      });
+    }
+    
     res.status(500).json({
       error: 'Token refresh failed',
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Validate token (public endpoint to check if stored token is valid)
+router.post('/validate-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({
+        error: 'Token required',
+        message: 'Token is required for validation'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Check if user still exists and is active
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true
+      }
+    });
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: 'User not found or inactive'
+      });
+    }
+
+    res.json({
+      message: 'Token is valid',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'Token expired',
+        message: 'Token has expired'
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        error: 'Invalid token',
+        message: 'Token is invalid'
+      });
+    }
+
+    console.error('Token validation error:', error);
+    res.status(500).json({
+      error: 'Token validation failed',
       message: 'Internal server error'
     });
   }

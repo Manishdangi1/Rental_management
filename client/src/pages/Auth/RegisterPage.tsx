@@ -13,8 +13,20 @@ import {
   Stack,
   FormControlLabel,
   Switch,
-  Divider
+  Divider,
+  InputAdornment,
+  IconButton,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  Radio
 } from '@mui/material';
+import {
+  Visibility,
+  VisibilityOff,
+  Person,
+  AdminPanelSettings
+} from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
 const RegisterPage: React.FC = () => {
@@ -24,8 +36,10 @@ const RegisterPage: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'CUSTOMER' as 'CUSTOMER' | 'ADMIN' // Updated role types
+    role: 'CUSTOMER' as 'CUSTOMER' | 'ADMIN'
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -38,11 +52,19 @@ const RegisterPage: React.FC = () => {
     });
   };
 
-  const handleRoleToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRoleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      role: event.target.checked ? 'ADMIN' : 'CUSTOMER' // Updated to ADMIN
+      role: e.target.value as 'CUSTOMER' | 'ADMIN'
     });
+  };
+
+  const handleTogglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleToggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,9 +82,15 @@ const RegisterPage: React.FC = () => {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        role: formData.role // Pass the role to the register function
+        role: formData.role
       });
-      navigate('/dashboard');
+      
+      // Redirect based on user role
+      if (formData.role === 'ADMIN') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/customer/dashboard');
+      }
     } catch (err) {
       setError('Failed to create an account.');
     } finally {
@@ -89,7 +117,18 @@ const RegisterPage: React.FC = () => {
             width: '100%',
             borderRadius: 3,
             background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            animation: 'slideInUp 0.6s ease-out',
+            '@keyframes slideInUp': {
+              '0%': {
+                opacity: 0,
+                transform: 'translateY(30px)',
+              },
+              '100%': {
+                opacity: 1,
+                transform: 'translateY(0)',
+              },
+            },
           }}
         >
           {/* Header Section */}
@@ -116,62 +155,45 @@ const RegisterPage: React.FC = () => {
             </Alert>
           )}
           
-          {/* Role Toggle Section */}
+          {/* Role Selection Section */}
           <Box sx={{ mb: 4 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom align="center" sx={{ mb: 2 }}>
-              Register As
-            </Typography>
-            <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-              <Chip 
-                label="Customer" 
-                color={formData.role === 'CUSTOMER' ? 'primary' : 'default'}
-                variant={formData.role === 'CUSTOMER' ? 'filled' : 'outlined'}
-                sx={{ 
-                  minWidth: 120,
-                  height: 40,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  '&:hover': { 
-                    opacity: 0.8,
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.2s ease-in-out'
-                }}
-                onClick={() => setFormData({...formData, role: 'CUSTOMER'})}
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.role === 'ADMIN'}
-                    onChange={handleRoleToggle}
-                    color="primary"
-                    size="medium"
-                  />
-                }
-                label=""
-              />
-              <Chip 
-                label="Staff Member" 
-                color={formData.role === 'ADMIN' ? 'primary' : 'default'} // Updated to ADMIN
-                variant={formData.role === 'ADMIN' ? 'filled' : 'outlined'} // Updated to ADMIN
-                sx={{ 
-                  minWidth: 120,
-                  height: 40,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  '&:hover': { 
-                    opacity: 0.8,
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.2s ease-in-out'
-                }}
-                onClick={() => setFormData({...formData, role: 'ADMIN'})}
-              />
-            </Stack>
+            <FormControl component="fieldset" fullWidth>
+              <FormLabel component="legend" sx={{ mb: 2, textAlign: 'center' }}>
+                Register As:
+              </FormLabel>
+              <RadioGroup
+                row
+                name="role"
+                value={formData.role}
+                onChange={handleRoleChange}
+                sx={{ justifyContent: 'space-around' }}
+              >
+                <FormControlLabel
+                  value="CUSTOMER"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Person fontSize="small" />
+                      Customer
+                    </Box>
+                  }
+                />
+                <FormControlLabel
+                  value="ADMIN"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <AdminPanelSettings fontSize="small" />
+                      Admin
+                    </Box>
+                  }
+                />
+              </RadioGroup>
+            </FormControl>
             <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mt: 2, px: 2, lineHeight: 1.4 }}>
               {formData.role === 'CUSTOMER' 
                 ? 'Create an account to access rental services and manage your equipment rentals' 
-                : 'Create an account to access internal rental management system for staff operations'}
+                : 'Create an account to access internal rental management system for administrative operations'}
             </Typography>
           </Box>
           
@@ -192,8 +214,18 @@ const RegisterPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    transition: 'all 0.2s ease-in-out',
                     '&:hover fieldset': {
                       borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                      borderWidth: 2,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    '&.Mui-focused': {
+                      color: 'primary.main',
                     },
                   },
                 }}
@@ -210,8 +242,18 @@ const RegisterPage: React.FC = () => {
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    transition: 'all 0.2s ease-in-out',
                     '&:hover fieldset': {
                       borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                      borderWidth: 2,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    '&.Mui-focused': {
+                      color: 'primary.main',
                     },
                   },
                 }}
@@ -231,8 +273,18 @@ const RegisterPage: React.FC = () => {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover fieldset': {
                     borderColor: 'primary.main',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'primary.main',
+                    borderWidth: 2,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  '&.Mui-focused': {
+                    color: 'primary.main',
                   },
                 },
               }}
@@ -245,16 +297,46 @@ const RegisterPage: React.FC = () => {
                 fullWidth
                 name="password"
                 label="Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id="password"
                 autoComplete="new-password"
                 value={formData.password}
                 onChange={handleChange}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        onClick={handleTogglePasswordVisibility}
+                        edge="end"
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'primary.light',
+                            color: 'white',
+                          },
+                          transition: 'all 0.2s ease-in-out',
+                        }}
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    transition: 'all 0.2s ease-in-out',
                     '&:hover fieldset': {
                       borderColor: 'primary.main',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                      borderWidth: 2,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    '&.Mui-focused': {
+                      color: 'primary.main',
                     },
                   },
                 }}
@@ -264,18 +346,94 @@ const RegisterPage: React.FC = () => {
                 fullWidth
                 name="confirmPassword"
                 label="Confirm Password"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 id="confirmPassword"
                 autoComplete="new-password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        onClick={handleToggleConfirmPasswordVisibility}
+                        edge="end"
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'primary.light',
+                            color: 'white',
+                          },
+                          transition: 'all 0.2s ease-in-out',
+                        }}
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
+                    transition: 'all 0.2s ease-in-out',
                     '&:hover fieldset': {
                       borderColor: 'primary.main',
                     },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'primary.main',
+                      borderWidth: 2,
+                    },
                   },
+                  '& .MuiInputLabel-root': {
+                    '&.Mui-focused': {
+                      color: 'primary.main',
+                    },
+                  },
+                }}
+              />
+            </Box>
+            
+            {/* Terms and Conditions Toggle */}
+            <Box sx={{ mt: 3, mb: 2 }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    required
+                    color="primary"
+                    size="small"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: 'primary.main',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: 'primary.main',
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" color="text.secondary">
+                    I agree to the{' '}
+                    <Link
+                      href="#"
+                      sx={{
+                        color: 'primary.main',
+                        textDecoration: 'none',
+                        fontWeight: 600,
+                        '&:hover': {
+                          textDecoration: 'underline',
+                        },
+                      }}
+                    >
+                      Terms and Conditions
+                    </Link>
+                  </Typography>
+                }
+                sx={{ 
+                  alignItems: 'flex-start',
+                  '& .MuiFormControlLabel-label': {
+                    fontSize: '0.875rem',
+                    lineHeight: 1.4,
+                  }
                 }}
               />
             </Box>

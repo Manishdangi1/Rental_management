@@ -1,11 +1,14 @@
 const express = require('express');
 const { prisma } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get rental statistics
-router.get('/rental-stats', authenticateToken, async (req, res) => {
+// Get rental statistics (Admin only)
+router.get('/rental-stats', [
+  authenticateToken,
+  requireRole(['ADMIN'])
+], async (req, res) => {
   try {
     const totalRentals = await prisma.rental.count();
     const activeRentals = await prisma.rental.count({
@@ -36,8 +39,11 @@ router.get('/rental-stats', authenticateToken, async (req, res) => {
   }
 });
 
-// Get product popularity
-router.get('/product-popularity', authenticateToken, async (req, res) => {
+// Get product popularity (Admin only)
+router.get('/product-popularity', [
+  authenticateToken,
+  requireRole(['ADMIN'])
+], async (req, res) => {
   try {
     const productStats = await prisma.rentalItem.groupBy({
       by: ['productId'],
@@ -79,8 +85,11 @@ router.get('/product-popularity', authenticateToken, async (req, res) => {
   }
 });
 
-// Add: Category popularity (top product categories)
-router.get('/category-popularity', authenticateToken, async (req, res) => {
+// Add: Category popularity (top product categories) (Admin only)
+router.get('/category-popularity', [
+  authenticateToken,
+  requireRole(['ADMIN'])
+], async (req, res) => {
   try {
     // First, group rental items by product to get quantities
     const productStats = await prisma.rentalItem.groupBy({

@@ -86,7 +86,8 @@ const ProductDetailPage: React.FC = () => {
       startDate: startDate,
       endDate: endDate,
       minimumDays: 1,
-      maximumDays: 365
+      maximumDays: 365,
+      invoiceStatus: 'NOTHING_TO_INVOICE'
     };
 
     console.log('ProductDetailPage: Adding item to cart:', cartItem);

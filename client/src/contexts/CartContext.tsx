@@ -15,6 +15,7 @@ export interface CartItem {
   endDate: Date;
   minimumDays: number;
   maximumDays?: number;
+  invoiceStatus: string; // Add invoice status field
 }
 
 interface CartState {
@@ -284,6 +285,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ...item,
       id: `${item.productId}-${Date.now()}`,
       totalPrice: calculatePrice(item.unitPrice, item.rentalType, item.startDate, item.endDate),
+      invoiceStatus: item.invoiceStatus || 'NOTHING_TO_INVOICE', // Set default invoice status
     };
     console.log('CartContext: Created cart item:', cartItem);
     dispatch({ type: 'ADD_ITEM', payload: cartItem });

@@ -130,7 +130,8 @@ const HomePage: React.FC = () => {
       startDate: new Date(),
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       minimumDays: 1,
-      maximumDays: 30
+      maximumDays: 30,
+      invoiceStatus: 'NOTHING_TO_INVOICE'
     };
     
     console.log('HomePage: Adding test item to cart:', testItem);

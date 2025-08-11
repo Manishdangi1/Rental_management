@@ -1,11 +1,11 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { prisma } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get all categories
+// Get all categories (public endpoint)
 router.get('/', async (req, res) => {
   try {
     const categories = await prisma.category.findMany({
@@ -20,9 +20,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create new category
+// Create new category (Admin only)
 router.post('/', [
   authenticateToken,
+  requireRole(['ADMIN']),
   body('name').isString().notEmpty(),
   body('description').optional().isString()
 ], async (req, res) => {

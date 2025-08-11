@@ -1,14 +1,24 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { prisma } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole, requireOwnershipOrAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get all deliveries
+// Get all deliveries (Admin only, or customer can see their own)
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    const where = {};
+    
+    // If user is not admin, they can only see their own deliveries
+    if (req.user.role !== 'ADMIN') {
+      where.rental = {
+        customerId: req.user.id
+      };
+    }
+    
     const deliveries = await prisma.delivery.findMany({
+      where,
       include: {
         rental: {
           include: {
@@ -33,7 +43,7 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new delivery
+// Create new delivery (Admin only, or customer can create for their own rentals)
 router.post('/', [
   authenticateToken,
   body('rentalId').isString().notEmpty(),
@@ -48,6 +58,21 @@ router.post('/', [
     }
     
     const { rentalId, type, scheduledAt, address, contactName, contactPhone, notes } = req.body;
+    
+    // Check if user has access to this rental
+    if (req.user.role !== 'ADMIN') {
+      const rental = await prisma.rental.findUnique({
+        where: { id: rentalId },
+        select: { customerId: true }
+      });
+      
+      if (!rental || rental.customerId !== req.user.id) {
+        return res.status(403).json({ 
+          error: 'Access denied',
+          message: 'You can only create deliveries for your own rentals' 
+        });
+      }
+    }
     
     const delivery = await prisma.delivery.create({
       data: {

@@ -27,6 +27,7 @@ model User {
   isActive      Boolean  @default(true)
   emailVerified Boolean  @default(false)
   profileImage  String?
+  lastLogin     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -41,7 +42,6 @@ model User {
 
 enum UserRole {
   CUSTOMER
-  STAFF
   ADMIN
 }
 
@@ -78,6 +78,21 @@ model Product {
   maximumRentalDays Int?
   weight            Float?
   dimensions        Json?
+  
+  // Enhanced rental fields
+  rentalInstructions String?  // Instructions for customers
+  setupRequirements  String?  // What's needed to set up the product
+  returnRequirements String?  // What customers need to do before return
+  damagePolicy      String?  // Policy for damages
+  insuranceRequired Boolean   @default(false)
+  insuranceAmount   Float?   // Required insurance amount
+  
+  // Pricing and availability
+  basePrice         Float?   // Base price for reference
+  isSeasonal        Boolean  @default(false)  // Seasonal pricing
+  peakSeasonStart   DateTime? // Peak season start date
+  peakSeasonEnd     DateTime? // Peak season end date
+  
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -86,6 +101,7 @@ model Product {
   pricelistItems   PricelistItem[]
   rentalItems      RentalItem[]
   productImages    ProductImage[]
+  availability     ProductAvailability[]
 
   @@map("products")
 }
@@ -104,6 +120,25 @@ model ProductImage {
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("product_images")
+}
+
+// Product Availability Tracking
+model ProductAvailability {
+  id          String   @id @default(cuid())
+  productId   String
+  date        DateTime // Date for availability tracking
+  available   Int      // Available quantity on this date
+  reserved    Int      @default(0) // Reserved quantity on this date
+  rented      Int      @default(0) // Currently rented quantity on this date
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, date])
+  @@map("product_availability")
 }
 
 // Pricing Management
@@ -141,8 +176,20 @@ model PricelistItem {
   minimumDays Int      @default(1)
   maximumDays Int?
   discount    Float?   @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  
+  // Enhanced pricing fields
+  discountType    DiscountType @default(PERCENTAGE) // PERCENTAGE or FIXED_AMOUNT
+  bulkDiscount    Boolean      @default(false)      // Apply bulk discounts
+  bulkThreshold   Int?         // Quantity threshold for bulk discount
+  bulkDiscountAmount Float?    // Bulk discount amount
+  
+  // Seasonal pricing
+  seasonalMultiplier Float?    // Multiplier for seasonal pricing
+  validFrom         DateTime   @default(now())
+  validTo           DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   pricelist Pricelist @relation(fields: [pricelistId], references: [id])
@@ -151,6 +198,11 @@ model PricelistItem {
   @@unique([pricelistId, productId, rentalType])
 
   @@map("pricelist_items")
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
 }
 
 enum RentalType {
@@ -167,9 +219,9 @@ model Rental {
   orderNumber       String        @unique // Unique order number like RO-123456-001
   customerId        String
   customerName      String        // Customer name for display
-  status            RentalStatus  @default(DRAFT)
-  startDate         DateTime?     // Made optional since orders can start as DRAFT
-  endDate           DateTime?     // Made optional since orders can start as DRAFT
+  status            RentalStatus  @default(QUOTATION)
+  startDate         DateTime?     // Made optional since orders can start as QUOTATION
+  endDate           DateTime?     // Made optional since orders can start as QUOTATION
   totalAmount       Float         @default(0)
   subtotal          Float         @default(0) // Subtotal before tax
   tax               Float         @default(0) // Tax amount
@@ -178,6 +230,7 @@ model Rental {
   notes             String?
   pickupAddress     String?
   returnAddress     String?
+  invoiceStatus     String        @default("NOTHING_TO_INVOICE") // FULLY_INVOICED, NOTHING_TO_INVOICE, TO_INVOICE
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -193,13 +246,11 @@ model Rental {
 }
 
 enum RentalStatus {
-  DRAFT
-  PENDING
-  CONFIRMED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  OVERDUE
+  QUOTATION
+  QUOTATION_SENT
+  PICKED_UP
+  RETURNED
+  RESERVED
 }
 
 model RentalItem {
@@ -214,6 +265,7 @@ model RentalItem {
   unitPrice  Float
   totalPrice Float
   notes      String?
+  invoiceStatus String @default("NOTHING_TO_INVOICE") // FULLY_INVOICED, NOTHING_TO_INVOICE, TO_INVOICE
   createdAt  DateTime @default(now())
 
   // Relations

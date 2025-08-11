@@ -10,10 +10,12 @@ import {
   Button,
   IconButton,
   TextField,
-  Divider
+  Divider,
+  Chip
 } from '@mui/material';
 import { Delete as DeleteIcon, Add as AddIcon, Remove as RemoveIcon } from '@mui/icons-material';
 import { useCart } from '../../contexts/CartContext';
+import { getInvoiceStatusColor, getInvoiceStatusLabel } from '../../utils/invoiceStatusUtils';
 
 const CartPage: React.FC = () => {
   const { items, removeRentalItem, updateRentalItemQuantity, clearRentalCart } = useCart();
@@ -97,6 +99,14 @@ const CartPage: React.FC = () => {
                     <Typography variant="body2" color="textSecondary">
                       From: {item.startDate.toLocaleDateString()} - To: {item.endDate.toLocaleDateString()}
                     </Typography>
+                    <Box sx={{ mt: 1 }}>
+                      <Chip
+                        label={getInvoiceStatusLabel(item.invoiceStatus || 'NOTHING_TO_INVOICE')}
+                        color={getInvoiceStatusColor(item.invoiceStatus || 'NOTHING_TO_INVOICE') as any}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </Box>
                   </Grid>
                   <Grid item xs={12} sm={3}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

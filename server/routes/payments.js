@@ -1,14 +1,22 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { prisma } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireRole, requireOwnershipOrAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Get all payments
+// Get all payments (Admin only, or customer can see their own)
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    const where = {};
+    
+    // If user is not admin, they can only see their own payments
+    if (req.user.role !== 'ADMIN') {
+      where.customerId = req.user.id;
+    }
+    
     const payments = await prisma.payment.findMany({
+      where,
       include: {
         rental: true,
         customer: {
@@ -30,8 +38,11 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Get payment by ID
-router.get('/:id', authenticateToken, async (req, res) => {
+// Get payment by ID (Admin only, or customer can see their own)
+router.get('/:id', [
+  authenticateToken,
+  requireOwnershipOrAdmin('payment', 'id')
+], async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -54,7 +65,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new payment
+// Create new payment (Admin only, or customer can create for themselves)
 router.post('/', [
   authenticateToken,
   body('rentalId').isString().notEmpty(),
@@ -69,6 +80,14 @@ router.post('/', [
     }
     
     const { rentalId, customerId, amount, method, description, transactionId } = req.body;
+    
+    // Validate that the user is creating a payment for themselves or has admin privileges
+    if (req.user.id !== customerId && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ 
+        error: 'Access denied',
+        message: 'You can only create payments for yourself' 
+      });
+    }
     
     const payment = await prisma.payment.create({
       data: {
@@ -92,9 +111,10 @@ router.post('/', [
   }
 });
 
-// Update payment status
+// Update payment status (Admin only, or customer can update their own)
 router.patch('/:id/status', [
   authenticateToken,
+  requireOwnershipOrAdmin('payment', 'id'),
   body('status').isIn(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'])
 ], async (req, res) => {
   try {
