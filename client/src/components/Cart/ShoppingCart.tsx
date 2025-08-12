@@ -17,19 +17,9 @@ import { Delete, ShoppingCart } from '@mui/icons-material';
 import { useCart } from '../../contexts/CartContext';
 
 const ShoppingCartComponent: React.FC = () => {
-  const { state: cartState, removeItem, clearCart } = useCart();
+  const { items, totalAmount, securityDeposit, grandTotal, removeItem, clearCart } = useCart();
 
-  if (!cartState || !cartState.items) {
-    return (
-      <Paper sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h6" color="error">
-          Cart data not available
-        </Typography>
-      </Paper>
-    );
-  }
-
-  if (cartState.items.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <Paper sx={{ p: 3, textAlign: 'center' }}>
         <ShoppingCart sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
@@ -50,7 +40,7 @@ const ShoppingCartComponent: React.FC = () => {
       </Typography>
       
       <List>
-        {cartState.items.map((item, index) => (
+        {items.map((item, index) => (
           <React.Fragment key={item.id}>
             <ListItem alignItems="flex-start">
               <ListItemAvatar>
@@ -96,7 +86,7 @@ const ShoppingCartComponent: React.FC = () => {
                 </IconButton>
               </Box>
             </ListItem>
-            {index < cartState.items.length - 1 && <Divider />}
+            {index < items.length - 1 && <Divider />}
           </React.Fragment>
         ))}
       </List>
@@ -106,17 +96,17 @@ const ShoppingCartComponent: React.FC = () => {
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography>Subtotal:</Typography>
-          <Typography>${(cartState.totalAmount || 0).toFixed(2)}</Typography>
+          <Typography>${(totalAmount || 0).toFixed(2)}</Typography>
         </Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography>Security Deposit:</Typography>
-          <Typography>${(cartState.securityDeposit || 0).toFixed(2)}</Typography>
+          <Typography>${(securityDeposit || 0).toFixed(2)}</Typography>
         </Box>
         <Divider sx={{ my: 1 }} />
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="h6">Total:</Typography>
           <Typography variant="h6" color="primary" fontWeight="bold">
-            ${(cartState.grandTotal || 0).toFixed(2)}
+            ${(grandTotal || 0).toFixed(2)}
           </Typography>
         </Box>
       </Box>

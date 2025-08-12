@@ -1,622 +1,806 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
+  Card,
+  CardContent,
+  Typography,
+  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
-  Typography,
-  Button,
-  TextField,
-  InputAdornment,
-  Chip,
+  Paper,
   IconButton,
-  Menu,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  SelectChangeEvent,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid,
-  Card,
-  CardContent,
-  Avatar,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Switch,
   FormControlLabel,
-  useTheme,
-  useMediaQuery
+  Grid,
+  Alert,
+  CircularProgress,
+  Tooltip,
+  Badge,
+  InputAdornment,
+  Pagination,
+  Checkbox,
+  Toolbar,
+  alpha
 } from '@mui/material';
 import {
-  Search,
   Add,
-  FilterList,
-  MoreVert,
-  Visibility,
   Edit,
   Delete,
+  Visibility,
+  Search,
+  FilterList,
+  Refresh,
   Inventory,
   Category,
-  AttachMoney,
-  TrendingUp
+  LocalOffer,
+  Settings,
+  CheckCircle,
+  Warning,
+  Block
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 interface Product {
   id: string;
   name: string;
-  sku: string;
   description: string;
-  category: string;
-  isRentable: boolean;
-  isActive: boolean;
+  sku: string;
+  category: {
+    id: string;
+    name: string;
+  };
   totalQuantity: number;
   availableQuantity: number;
-  unitPrice: number;
-  images: string[];
+  basePrice: number;
+  minimumRentalDays: number;
+  maximumRentalDays: number;
+  isRentable: boolean;
+  isActive: boolean;
+  isSeasonal: boolean;
   createdAt: string;
-  totalRentals: number;
-  revenue: number;
+  updatedAt: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 const AdminProducts: React.FC = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [rowsPerPage] = useState(10);
+  const [totalProducts, setTotalProducts] = useState(0);
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  // Dialog states
+  const [productDialog, setProductDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchTerm, categoryFilter, statusFilter]);
+  // Form states
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    sku: '',
+    categoryId: '',
+    totalQuantity: 1,
+    availableQuantity: 1,
+    basePrice: 0,
+    minimumRentalDays: 1,
+    maximumRentalDays: 30,
+    isRentable: true,
+    isActive: true,
+    isSeasonal: false,
+    rentalInstructions: '',
+    setupRequirements: '',
+    returnRequirements: '',
+    damagePolicy: '',
+    insuranceRequired: false,
+    insuranceAmount: 0
+  });
 
-  const loadProducts = async () => {
+  // Fetch products
+  const fetchProducts = async () => {
     try {
-      // Simulate API call
-      const mockProducts: Product[] = [
-        {
-          id: '1',
-          name: 'Camping Tent Set',
-          sku: 'OUT-001',
-          description: 'Complete camping tent setup with poles and stakes',
-          category: 'Outdoor & Camping',
-          isRentable: true,
-          isActive: true,
-          totalQuantity: 15,
-          availableQuantity: 8,
-          unitPrice: 45,
-          images: ['tent1.jpg', 'tent2.jpg'],
-          createdAt: '2023-01-01',
-          totalRentals: 127,
-          revenue: 5715
-        },
-        {
-          id: '2',
-          name: 'Portable Generator',
-          sku: 'OUT-002',
-          description: '5000W portable generator for outdoor events',
-          category: 'Outdoor & Camping',
-          isRentable: true,
-          isActive: true,
-          totalQuantity: 8,
-          availableQuantity: 3,
-          unitPrice: 85,
-          images: ['generator1.jpg'],
-          createdAt: '2023-01-15',
-          totalRentals: 89,
-          revenue: 7565
-        },
-        {
-          id: '3',
-          name: 'BBQ Grill Set',
-          sku: 'OUT-005',
-          description: 'Professional BBQ grill with accessories',
-          category: 'Outdoor & Camping',
-          isRentable: true,
-          isActive: true,
-          totalQuantity: 12,
-          availableQuantity: 5,
-          unitPrice: 35,
-          images: ['grill1.jpg', 'grill2.jpg'],
-          createdAt: '2023-02-01',
-          totalRentals: 156,
-          revenue: 5460
-        },
-        {
-          id: '4',
-          name: 'Party Tent 20x30',
-          sku: 'PARTY-001',
-          description: 'Large party tent for events and celebrations',
-          category: 'Party & Events',
-          isRentable: true,
-          isActive: true,
-          totalQuantity: 6,
-          availableQuantity: 2,
-          unitPrice: 150,
-          images: ['tent-party1.jpg'],
-          createdAt: '2023-01-20',
-          totalRentals: 67,
-          revenue: 10050
-        },
-        {
-          id: '5',
-          name: 'LED Dance Floor',
-          sku: 'PARTY-003',
-          description: 'Interactive LED dance floor panels',
-          category: 'Party & Events',
-          isRentable: true,
-          isActive: false,
-          totalQuantity: 20,
-          availableQuantity: 0,
-          unitPrice: 25,
-          images: ['dance-floor1.jpg'],
-          createdAt: '2023-03-01',
-          totalRentals: 45,
-          revenue: 1125
+      setLoading(true);
+      const response = await fetch('/api/products', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      ];
-      
-      setProducts(mockProducts);
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data.products || []);
+        setTotalProducts(data.products?.length || 0);
+      } else {
+        setError('Failed to fetch products');
+      }
     } catch (error) {
-      console.error('Error loading products:', error);
+      console.error('Error fetching products:', error);
+      setError('Failed to fetch products');
     } finally {
       setLoading(false);
     }
   };
 
-  const filterProducts = () => {
-    let filtered = products;
+  // Fetch categories
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(product => product.category === categoryFilter);
-    }
-
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(product => 
-        statusFilter === 'active' ? product.isActive : !product.isActive
-      );
-    }
-
-    setFilteredProducts(filtered);
-    setPage(0);
-  };
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleCategoryFilterChange = (event: SelectChangeEvent) => {
-    setCategoryFilter(event.target.value);
-  };
-
-  const handleStatusFilterChange = (event: SelectChangeEvent) => {
-    setStatusFilter(event.target.value);
-  };
-
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, product: Product) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedProduct(product);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedProduct(null);
-  };
-
-  const handleViewProduct = () => {
-    if (selectedProduct) {
-      navigate(`/admin/products/${selectedProduct.id}`);
-    }
-    handleMenuClose();
-  };
-
-  const handleEditProduct = () => {
-    if (selectedProduct) {
-      navigate(`/admin/products/${selectedProduct.id}/edit`);
-    }
-    handleMenuClose();
-  };
-
-  const handleToggleStatus = () => {
-    setStatusChangeDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const handleDeleteProduct = () => {
-    setDeleteDialogOpen(true);
-    handleMenuClose();
-  };
-
-  const confirmStatusChange = () => {
-    if (selectedProduct) {
-      setProducts(products.map(product => 
-        product.id === selectedProduct.id 
-          ? { ...product, isActive: !product.isActive }
-          : product
-      ));
-      setStatusChangeDialogOpen(false);
-      setSelectedProduct(null);
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data.categories || []);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
     }
   };
 
-  const confirmDelete = () => {
-    if (selectedProduct) {
-      setProducts(products.filter(p => p.id !== selectedProduct.id));
-      setDeleteDialogOpen(false);
-      setSelectedProduct(null);
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  // Filter products
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = selectedCategory === 'all' || product.category.id === selectedCategory;
+    
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'active' && product.isActive) ||
+                         (statusFilter === 'inactive' && !product.isActive) ||
+                         (statusFilter === 'rentable' && product.isRentable) ||
+                         (statusFilter === 'non-rentable' && !product.isRentable);
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // Pagination
+  const paginatedProducts = filteredProducts.slice(
+    (page - 1) * rowsPerPage,
+    page * rowsPerPage
+  );
+
+  // Handle form input changes
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Open product dialog
+  const handleOpenProductDialog = (product?: Product) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormData({
+        name: product.name,
+        description: product.description,
+        sku: product.sku,
+        categoryId: product.category.id,
+        totalQuantity: product.totalQuantity,
+        availableQuantity: product.availableQuantity,
+        basePrice: product.basePrice,
+        minimumRentalDays: product.minimumRentalDays,
+        maximumRentalDays: product.maximumRentalDays,
+        isRentable: product.isRentable,
+        isActive: product.isActive,
+        isSeasonal: product.isSeasonal,
+        rentalInstructions: '',
+        setupRequirements: '',
+        returnRequirements: '',
+        damagePolicy: '',
+        insuranceRequired: false,
+        insuranceAmount: 0
+      });
+    } else {
+      setEditingProduct(null);
+      setFormData({
+        name: '',
+        description: '',
+        sku: '',
+        categoryId: '',
+        totalQuantity: 1,
+        availableQuantity: 1,
+        basePrice: 0,
+        minimumRentalDays: 1,
+        maximumRentalDays: 30,
+        isRentable: true,
+        isActive: true,
+        isSeasonal: false,
+        rentalInstructions: '',
+        setupRequirements: '',
+        returnRequirements: '',
+        damagePolicy: '',
+        insuranceRequired: false,
+        insuranceAmount: 0
+      });
+    }
+    setProductDialog(true);
+  };
+
+  // Save product
+  const handleSaveProduct = async () => {
+    try {
+      const url = editingProduct 
+        ? `/api/products/${editingProduct.id}`
+        : '/api/products';
+      
+      const method = editingProduct ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        setProductDialog(false);
+        fetchProducts();
+        setEditingProduct(null);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to save product');
+      }
+    } catch (error) {
+      console.error('Error saving product:', error);
+      setError('Failed to save product');
     }
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors = ['primary', 'secondary', 'success', 'info', 'warning', 'error'];
-    const index = category.length % colors.length;
-    return colors[index];
+  // Delete product
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+
+    try {
+      const response = await fetch(`/api/products/${productToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        setDeleteDialog(false);
+        setProductToDelete(null);
+        fetchProducts();
+      } else {
+        setError('Failed to delete product');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      setError('Failed to delete product');
+    }
   };
 
-  const getCategoryCount = (category: string) => {
-    return products.filter(product => product.category === category).length;
+  // Bulk actions
+  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
+    if (selectedProducts.length === 0) return;
+
+    try {
+      if (action === 'delete') {
+        // Handle bulk delete
+        const deletePromises = selectedProducts.map(id =>
+          fetch(`/api/products/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          })
+        );
+        
+        await Promise.all(deletePromises);
+      } else {
+        // Handle bulk activate/deactivate
+        const updatePromises = selectedProducts.map(id =>
+          fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+              isActive: action === 'activate'
+            })
+          })
+        );
+        
+        await Promise.all(updatePromises);
+      }
+      
+      setSelectedProducts([]);
+      fetchProducts();
+    } catch (error) {
+      console.error('Error performing bulk action:', error);
+      setError('Failed to perform bulk action');
+    }
   };
 
-  const getActiveProductCount = () => {
-    return products.filter(product => product.isActive).length;
+  // Select all products
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(paginatedProducts.map(p => p.id));
+    } else {
+      setSelectedProducts([]);
+    }
   };
 
-  const getTotalRevenue = () => {
-    return products.reduce((sum, product) => sum + product.revenue, 0);
-  };
-
-  const getTotalRentals = () => {
-    return products.reduce((sum, product) => sum + product.totalRentals, 0);
+  // Select individual product
+  const handleSelectProduct = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedProducts(prev => [...prev, productId]);
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId));
+    }
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <Typography>Loading products...</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Product Management</Typography>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Product Management
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Manage your rental product catalog, inventory, and pricing
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={() => navigate('/admin/products/new')}
+          onClick={() => handleOpenProductDialog()}
         >
           Add New Product
         </Button>
       </Box>
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="body2">
-                Total Products
-              </Typography>
-              <Typography variant="h4">
-                {products.length}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="body2">
-                Active Products
-              </Typography>
-              <Typography variant="h4">
-                {getActiveProductCount()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="body2">
-                Total Rentals
-              </Typography>
-              <Typography variant="h4">
-                {getTotalRentals()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary" gutterBottom variant="body2">
-                Total Revenue
-              </Typography>
-              <Typography variant="h4">
-                ${getTotalRevenue().toLocaleString()}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
       {/* Filters and Search */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={categoryFilter}
-                label="Category"
-                onChange={handleCategoryFilterChange}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  label="Category"
+                >
+                  <MenuItem value="all">All Categories</MenuItem>
+                  {categories.map(category => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  label="Status"
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value="rentable">Rentable</MenuItem>
+                  <MenuItem value="non-rentable">Non-Rentable</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Refresh />}
+                onClick={fetchProducts}
               >
-                <MenuItem value="all">All Categories</MenuItem>
-                <MenuItem value="Outdoor & Camping">Outdoor & Camping</MenuItem>
-                <MenuItem value="Party & Events">Party & Events</MenuItem>
-                <MenuItem value="Kitchen & Catering">Kitchen & Catering</MenuItem>
-                <MenuItem value="Office & Business">Office & Business</MenuItem>
-                <MenuItem value="Tools & Equipment">Tools & Equipment</MenuItem>
-              </Select>
-            </FormControl>
+                Refresh
+              </Button>
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status"
-                onChange={handleStatusFilterChange}
-              >
-                <MenuItem value="all">All Statuses</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
+        </CardContent>
+      </Card>
+
+      {/* Bulk Actions Toolbar */}
+      {selectedProducts.length > 0 && (
+        <Paper sx={{ mb: 2, p: 2, bgcolor: alpha('#1976d2', 0.1) }}>
+          <Toolbar>
+            <Typography variant="body2" sx={{ flexGrow: 1 }}>
+              {selectedProducts.length} product(s) selected
+            </Typography>
             <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-              fullWidth
+              size="small"
+              onClick={() => handleBulkAction('activate')}
+              sx={{ mr: 1 }}
             >
-              More
+              Activate
             </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+            <Button
+              size="small"
+              onClick={() => handleBulkAction('deactivate')}
+              sx={{ mr: 1 }}
+            >
+              Deactivate
+            </Button>
+            <Button
+              size="small"
+              color="error"
+              onClick={() => handleBulkAction('delete')}
+            >
+              Delete
+            </Button>
+          </Toolbar>
+        </Paper>
+      )}
 
       {/* Products Table */}
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <TableContainer>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>SKU</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Performance</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredProducts
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((product) => (
+      <Card>
+        <CardContent>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedProducts.length === paginatedProducts.length}
+                      indeterminate={selectedProducts.length > 0 && selectedProducts.length < paginatedProducts.length}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </TableCell>
+                  <TableCell>Product</TableCell>
+                  <TableCell>SKU</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Inventory</TableCell>
+                  <TableCell>Price</TableCell>
+                  <TableCell>Rental Days</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {paginatedProducts.map((product) => (
                   <TableRow key={product.id} hover>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                          {product.name.charAt(0)}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontWeight="medium">
-                            {product.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {product.description.substring(0, 50)}...
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={product.category}
-                        color={getCategoryColor(product.category) as any}
-                        size="small"
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={selectedProducts.includes(product.id)}
+                        onChange={(e) => handleSelectProduct(product.id, e.target.checked)}
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        {product.sku}
-                      </Typography>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          {product.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 200 }}>
+                          {product.description}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={product.sku} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={product.category.name} 
+                        size="small" 
+                        icon={<Category />}
+                      />
                     </TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="body2">
-                          {product.availableQuantity}/{product.totalQuantity}
+                          {product.availableQuantity} / {product.totalQuantity}
                         </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Available / Total
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight="bold">
+                        ${product.basePrice}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {product.minimumRentalDays}-{product.maximumRentalDays} days
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                         <Chip
-                          label={product.isRentable ? 'Rentable' : 'Not Rentable'}
-                          color={product.isRentable ? 'success' : 'default'}
+                          label={product.isActive ? 'Active' : 'Inactive'}
+                          color={product.isActive ? 'success' : 'default'}
                           size="small"
-                          sx={{ mt: 0.5 }}
+                          icon={product.isActive ? <CheckCircle /> : <Block />}
+                        />
+                        <Chip
+                          label={product.isRentable ? 'Rentable' : 'Non-Rentable'}
+                          color={product.isRentable ? 'primary' : 'default'}
+                          size="small"
+                          icon={product.isRentable ? <LocalOffer /> : <Warning />}
                         />
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" fontWeight="bold">
-                        ${product.unitPrice}/day
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={product.isActive ? 'Active' : 'Inactive'}
-                        color={product.isActive ? 'success' : 'error'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">
-                          {product.totalRentals} rentals
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          ${product.revenue} revenue
-                        </Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Tooltip title="View Details">
+                          <IconButton size="small" onClick={() => navigate(`/admin/products/${product.id}`)}>
+                            <Visibility />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit Product">
+                          <IconButton size="small" onClick={() => handleOpenProductDialog(product)}>
+                            <Edit />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Product">
+                          <IconButton 
+                            size="small" 
+                            color="error"
+                            onClick={() => {
+                              setProductToDelete(product);
+                              setDeleteDialog(true);
+                            }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, product)}
-                      >
-                        <MoreVert />
-                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredProducts.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </Paper>
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-      {/* Action Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
+          {/* Pagination */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Pagination
+              count={Math.ceil(filteredProducts.length / rowsPerPage)}
+              page={page}
+              onChange={(e, newPage) => setPage(newPage)}
+              color="primary"
+            />
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Product Dialog */}
+      <Dialog 
+        open={productDialog} 
+        onClose={() => setProductDialog(false)}
+        maxWidth="md"
+        fullWidth
       >
-        <MenuItem onClick={handleViewProduct}>
-          <Visibility fontSize="small" sx={{ mr: 1 }} />
-          View Details
-        </MenuItem>
-        <MenuItem onClick={handleEditProduct}>
-          <Edit fontSize="small" sx={{ mr: 1 }} />
-          Edit Product
-        </MenuItem>
-        <MenuItem onClick={handleToggleStatus}>
-          {selectedProduct?.isActive ? (
-            <>
-              <Inventory fontSize="small" sx={{ mr: 1 }} />
-              Deactivate Product
-            </>
-          ) : (
-            <>
-              <TrendingUp fontSize="small" sx={{ mr: 1 }} />
-              Activate Product
-            </>
-          )}
-        </MenuItem>
-        <MenuItem onClick={handleDeleteProduct} sx={{ color: 'error.main' }}>
-          <Delete fontSize="small" sx={{ mr: 1 }} />
-          Delete Product
-        </MenuItem>
-      </Menu>
-
-      {/* Status Change Confirmation Dialog */}
-      <Dialog open={statusChangeDialogOpen} onClose={() => setStatusChangeDialogOpen(false)}>
-        <DialogTitle>Confirm Status Change</DialogTitle>
+        <DialogTitle>
+          {editingProduct ? 'Edit Product' : 'Add New Product'}
+        </DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to {selectedProduct?.isActive ? 'deactivate' : 'activate'} product {selectedProduct?.name}?
-          </Typography>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Product Name"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="SKU"
+                value={formData.sku}
+                onChange={(e) => handleInputChange('sku', e.target.value)}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                multiline
+                rows={3}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={formData.categoryId}
+                  onChange={(e) => handleInputChange('categoryId', e.target.value)}
+                  label="Category"
+                  required
+                >
+                  {categories.map(category => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Base Price"
+                type="number"
+                value={formData.basePrice}
+                onChange={(e) => handleInputChange('basePrice', parseFloat(e.target.value))}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Total Quantity"
+                type="number"
+                value={formData.totalQuantity}
+                onChange={(e) => handleInputChange('totalQuantity', parseInt(e.target.value))}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Available Quantity"
+                type="number"
+                value={formData.availableQuantity}
+                onChange={(e) => handleInputChange('availableQuantity', parseInt(e.target.value))}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Minimum Rental Days"
+                type="number"
+                value={formData.minimumRentalDays}
+                onChange={(e) => handleInputChange('minimumRentalDays', parseInt(e.target.value))}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Maximum Rental Days"
+                type="number"
+                value={formData.maximumRentalDays}
+                onChange={(e) => handleInputChange('maximumRentalDays', parseInt(e.target.value))}
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isRentable}
+                      onChange={(e) => handleInputChange('isRentable', e.target.checked)}
+                    />
+                  }
+                  label="Rentable"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isActive}
+                      onChange={(e) => handleInputChange('isActive', e.target.checked)}
+                    />
+                  }
+                  label="Active"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isSeasonal}
+                      onChange={(e) => handleInputChange('isSeasonal', e.target.checked)}
+                    />
+                  }
+                  label="Seasonal"
+                />
+              </Box>
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setStatusChangeDialogOpen(false)}>Cancel</Button>
-          <Button onClick={confirmStatusChange} variant="contained">
-            Confirm
+          <Button onClick={() => setProductDialog(false)}>Cancel</Button>
+          <Button onClick={handleSaveProduct} variant="contained">
+            {editingProduct ? 'Update' : 'Create'} Product
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog open={deleteDialog} onClose={() => setDeleteDialog(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete product {selectedProduct?.name}? This action cannot be undone.
+            Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+          <Button onClick={() => setDeleteDialog(false)}>Cancel</Button>
+          <Button onClick={handleDeleteProduct} color="error" variant="contained">
             Delete
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
     </Box>
   );
 };

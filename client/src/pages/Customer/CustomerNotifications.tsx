@@ -47,7 +47,8 @@ import {
   Warning,
   Error,
   CheckCircle,
-  Schedule
+  Schedule,
+  Search
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -115,10 +116,31 @@ const CustomerNotifications: React.FC = () => {
       setError(null);
       
       const response = await api.get('/notifications');
-      setNotifications(response.data || []);
+      console.log('Notifications API response:', response.data);
+      
+      // Validate and transform the notification data
+      const notificationsData = response.data || [];
+      const validatedNotifications = notificationsData.map((notification: any) => ({
+        id: notification.id || '',
+        title: notification.title || notification.message || 'Notification',
+        message: notification.message || notification.title || 'No message',
+        type: notification.type || 'INFO',
+        priority: notification.priority || 'LOW',
+        status: notification.status || 'UNREAD', // Default to UNREAD if status is missing
+        category: notification.category || 'SYSTEM',
+        createdAt: notification.createdAt || new Date().toISOString(),
+        readAt: notification.readAt || undefined,
+        actionUrl: notification.actionUrl || undefined,
+        actionText: notification.actionText || undefined,
+        metadata: notification.metadata || {}
+      }));
+      
+      console.log('Validated notifications:', validatedNotifications);
+      setNotifications(validatedNotifications);
     } catch (error: any) {
       console.error('Error loading notifications:', error);
       setError(error.response?.data?.message || 'Failed to load notifications');
+      setNotifications([]);
     } finally {
       setLoading(false);
     }
@@ -246,8 +268,6 @@ const CustomerNotifications: React.FC = () => {
     setDetailDialogOpen(false);
   };
 
-  const unreadCount = notifications.filter(n => n.status === 'UNREAD').length;
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -278,7 +298,14 @@ const CustomerNotifications: React.FC = () => {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'primary.50' }}>
+          <Card sx={{ 
+            bgcolor: 'primary.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={{ bgcolor: 'primary.main' }}>
@@ -297,7 +324,14 @@ const CustomerNotifications: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'warning.50' }}>
+          <Card sx={{ 
+            bgcolor: 'warning.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={{ bgcolor: 'warning.main' }}>
@@ -305,7 +339,7 @@ const CustomerNotifications: React.FC = () => {
                 </Avatar>
                 <Box>
                   <Typography variant="h6" color="warning.main">
-                    {unreadCount}
+                    {(notifications || []).filter(n => n.status === 'UNREAD').length}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Unread
@@ -316,7 +350,14 @@ const CustomerNotifications: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'success.50' }}>
+          <Card sx={{ 
+            bgcolor: 'success.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={{ bgcolor: 'success.main' }}>
@@ -335,7 +376,14 @@ const CustomerNotifications: React.FC = () => {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: 'info.50' }}>
+          <Card sx={{ 
+            bgcolor: 'info.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={{ bgcolor: 'info.main' }}>
@@ -365,7 +413,7 @@ const CustomerNotifications: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
-                startAdornment: <Notifications sx={{ mr: 1, color: 'text.secondary' }} />
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
               }}
             />
           </Grid>
@@ -378,18 +426,18 @@ const CustomerNotifications: React.FC = () => {
                 onChange={(e: SelectChangeEvent) => setFilter(e.target.value as any)}
               >
                 <MenuItem value="all">All ({(notifications || []).length})</MenuItem>
-                <MenuItem value="unread">Unread ({unreadCount})</MenuItem>
+                <MenuItem value="unread">Unread ({notifications.filter(n => n.status === 'UNREAD').length})</MenuItem>
                 <MenuItem value="read">Read ({(notifications || []).filter(n => n.status === 'READ').length})</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} md={5}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="outlined"
                 startIcon={<CheckCircle />}
                 onClick={markAllAsRead}
-                disabled={unreadCount === 0}
+                disabled={notifications.filter(n => n.status === 'UNREAD').length === 0}
               >
                 Mark All as Read
               </Button>
@@ -413,7 +461,13 @@ const CustomerNotifications: React.FC = () => {
               sx={{ 
                 borderLeft: 4, 
                 borderColor: `${getTypeColor(notification.type)}.main`,
-                opacity: notification.status === 'READ' ? 0.7 : 1
+                opacity: notification.status === 'READ' ? 0.7 : 1,
+                '&:hover': {
+                  boxShadow: theme.shadows[8],
+                  transform: 'translateY(-2px)',
+                  transition: 'all 0.3s ease-in-out',
+                  opacity: 1
+                }
               }}
             >
               <CardContent>
@@ -448,7 +502,7 @@ const CustomerNotifications: React.FC = () => {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                         {notification.message}
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                         <Chip
                           label={notification.category}
                           size="small"
@@ -459,7 +513,7 @@ const CustomerNotifications: React.FC = () => {
                           color={notification.status === 'UNREAD' ? 'primary' : 'default'}
                           size="small"
                         />
-                        <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                        <Typography variant="caption" color="text.secondary">
                           {new Date(notification.createdAt).toLocaleDateString()}
                         </Typography>
                       </Box>

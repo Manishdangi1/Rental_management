@@ -37,11 +37,14 @@ import {
   Search,
   AddShoppingCart,
   Delete,
-  Edit
+  Edit,
+  Favorite,
+  FavoriteBorder
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
+import { useFavorites } from '../../contexts/FavoritesContext';
 import ProductCard from '../../components/Product/ProductCard';
 import ShoppingCartComponent from '../../components/Cart/ShoppingCart';
 
@@ -55,7 +58,15 @@ interface CustomerRental {
   items: Array<{
     productName: string;
     quantity: number;
+    unitPrice: number;
+    totalPrice: number;
   }>;
+  customerName?: string;
+  pickupAddress?: string;
+  returnAddress?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const CustomerDashboard: React.FC = () => {
@@ -81,39 +92,30 @@ const CustomerDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [cartAnchorEl, setCartAnchorEl] = useState<null | HTMLElement>(null);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
   
   console.log('CustomerDashboard: State initialized');
   
-  try {
-    const { state: cartState, removeItem, updateQuantity, clearCart } = useCart();
-    console.log('CustomerDashboard: Cart context loaded:', cartState);
-  } catch (error) {
-    console.error('CustomerDashboard: Error loading cart context:', error);
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h6" color="error">
-          Error loading cart. Please refresh the page.
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {error instanceof Error ? error.message : 'Unknown error'}
-        </Typography>
-      </Box>
-    );
-  }
+  // Get cart context
+  const { items: cartItems, removeRentalItem, updateRentalItemQuantity, clearRentalCart } = useCart();
+  console.log('CustomerDashboard: Cart context loaded:', cartItems);
+
+  // Get favorites context
+  const { items: favoriteItems, removeFromFavorites, getFavoritesCount } = useFavorites();
+  console.log('CustomerDashboard: Favorites context loaded:', favoriteItems);
+
+  // Get unique categories (with safety checks)
+  const categories = ['all', ...Array.from(new Set(Array.isArray(products) ? products.map(p => p?.category?.name || p?.categoryId).filter(Boolean) : []))];
 
   // Filter products based on search and category (with safety checks)
-  const filteredProducts = products?.filter(product => {
+  const filteredProducts = Array.isArray(products) ? products.filter((product: any) => {
     if (!product || !product.name || !product.description) return false;
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
-  }) || [];
-
-  // Get unique categories (with safety checks)
-  const categories = ['all', ...Array.from(new Set(products?.map(p => p?.category).filter(Boolean) || []))];
+  }) : [];
 
   // Cart handlers
   const handleCartClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -125,20 +127,15 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleRemoveFromCart = (itemId: string) => {
-    removeItem(itemId);
+    removeRentalItem(itemId);
   };
 
   const handleUpdateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      handleRemoveFromCart(itemId);
-    } else {
-      updateQuantity(itemId, newQuantity);
-    }
+    updateRentalItemQuantity(itemId, newQuantity);
   };
 
   const handleCheckout = () => {
-    handleCartClose();
-    setActiveTab(2); // Switch to shopping cart tab
+    navigate('/checkout');
   };
 
   const cartOpen = Boolean(cartAnchorEl);
@@ -155,9 +152,23 @@ const CustomerDashboard: React.FC = () => {
       const response = await fetch('/api/products');
       if (response.ok) {
         const data = await response.json();
-        setProducts(data || []);
+        console.log('Products API response:', data);
+        
+        // Handle the API response structure: { products: [...], pagination: {...} }
+        const productsArray = data.products || data;
+        console.log('Products array:', productsArray);
+        console.log('Products type:', typeof productsArray);
+        console.log('Is array:', Array.isArray(productsArray));
+        
+        if (Array.isArray(productsArray)) {
+          setProducts(productsArray);
+          console.log(`Successfully loaded ${productsArray.length} products`);
+        } else {
+          console.error('Products data is not an array:', productsArray);
+          setProducts([]);
+        }
       } else {
-        console.error('Failed to fetch products');
+        console.error('Failed to fetch products:', response.status, response.statusText);
         setProducts([]);
       }
     } catch (error) {
@@ -168,75 +179,77 @@ const CustomerDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    // Simulate loading customer data
-    const loadCustomerData = async () => {
-      try {
-        setStats({
-          totalRentals: 12,
-          activeRentals: 3,
-          totalSpent: 2847,
-          upcomingDeliveries: 1
-        });
-
-        setActiveRentals([
-          {
-            id: '1',
-            orderNumber: 'RO-1754916845853-006',
-            status: 'IN_PROGRESS',
-            totalAmount: 395,
-            startDate: '2024-01-15',
-            endDate: '2024-01-20',
-            items: [
-              { productName: 'Camping Tent Set', quantity: 1 },
-              { productName: 'Portable Generator', quantity: 1 }
-            ]
-          },
-          {
-            id: '2',
-            orderNumber: 'RO-1754916845854-036',
-            status: 'CONFIRMED',
-            totalAmount: 528,
-            startDate: '2024-01-22',
-            endDate: '2024-01-25',
-            items: [
-              { productName: 'BBQ Grill Set', quantity: 1 },
-              { productName: 'Outdoor Furniture Set', quantity: 1 }
-            ]
-          }
-        ]);
-
-        setRecentRentals([
-          {
-            id: '3',
-            orderNumber: 'RO-1754916845853-024',
-            status: 'COMPLETED',
-            totalAmount: 711,
-            startDate: '2024-01-01',
-            endDate: '2024-01-05',
-            items: [
-              { productName: 'Party Tent 10x15', quantity: 1 },
-              { productName: 'Table & Chair Set', quantity: 1 }
-            ]
-          }
-        ]);
-      } catch (error) {
-        console.error('Error loading customer data:', error);
-        // Set default values to prevent crashes
+  // Fetch customer data from backend
+  const fetchCustomerData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch customer stats
+      const statsResponse = await fetch('/api/customer/stats', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData);
+      } else {
+        // Set default stats if API fails
         setStats({
           totalRentals: 0,
           activeRentals: 0,
           totalSpent: 0,
           upcomingDeliveries: 0
         });
-        setActiveRentals([]);
-        setRecentRentals([]);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    loadCustomerData();
+      // Fetch active rentals
+      const activeRentalsResponse = await fetch('/api/customer/rentals?status=ACTIVE', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (activeRentalsResponse.ok) {
+        const activeRentalsData = await activeRentalsResponse.json();
+        setActiveRentals(activeRentalsData.rentals || activeRentalsData || []);
+      } else {
+        setActiveRentals([]);
+      }
+
+      // Fetch recent rentals
+      const recentRentalsResponse = await fetch('/api/customer/rentals?status=COMPLETED&limit=5', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (recentRentalsResponse.ok) {
+        const recentRentalsData = await recentRentalsResponse.json();
+        setRecentRentals(recentRentalsData.rentals || recentRentalsData || []);
+      } else {
+        setRecentRentals([]);
+      }
+
+    } catch (error) {
+      console.error('Error loading customer data:', error);
+      // Set default values to prevent crashes
+      setStats({
+        totalRentals: 0,
+        activeRentals: 0,
+        totalSpent: 0,
+        upcomingDeliveries: 0
+      });
+      setActiveRentals([]);
+      setRecentRentals([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomerData();
     fetchProducts(); // Fetch products from backend
   }, []);
 
@@ -292,73 +305,236 @@ const CustomerDashboard: React.FC = () => {
     );
   }
 
-  // Simple fallback to prevent white pages
+  // Main dashboard content
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Welcome back, {user?.firstName || 'Customer'}!
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Dashboard is loading...
-      </Typography>
-      <Button 
-        variant="contained" 
-        onClick={() => window.location.reload()}
-      >
-        Refresh Page
-      </Button>
-    </Box>
-  );
-
-  // Error boundary - if anything goes wrong, show a fallback
-  try {
-    return (
-      <Box sx={{ flexGrow: 1, p: 3 }}>
-        {/* Header */}
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h4" gutterBottom>
-              Welcome back, {user?.firstName || 'Customer'}!
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <Button
-                variant="outlined"
-                startIcon={<ShoppingCart />}
-                onClick={handleCartClick}
-                sx={{ position: 'relative' }}
-              >
-                Cart
-                {cartState?.items?.length > 0 && (
-                  <Chip
-                    label={cartState.items.length}
-                    size="small"
-                    color="primary"
-                    sx={{
-                      position: 'absolute',
-                      top: -8,
-                      right: -8,
-                      minWidth: 20,
-                      height: 20,
-                      fontSize: '0.75rem'
-                    }}
-                  />
-                )}
-              </Button>
-            </Box>
-          </Box>
-          <Typography variant="body1" color="text.secondary">
-            Manage your rentals, track deliveries, and browse available products
+    <Box sx={{ flexGrow: 1, p: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4" gutterBottom>
+            Welcome back, {user?.firstName || 'Customer'}!
           </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Button
+              variant="outlined"
+              startIcon={<ShoppingCart />}
+              onClick={handleCartClick}
+              sx={{ position: 'relative' }}
+            >
+              Cart
+              {cartItems?.length > 0 && (
+                <Chip
+                  label={cartItems.length}
+                  size="small"
+                  color="primary"
+                  sx={{
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    minWidth: 20,
+                    height: 20,
+                    fontSize: '0.75rem'
+                  }}
+                />
+              )}
+            </Button>
+          </Box>
         </Box>
+        <Typography variant="body1" color="text.secondary">
+          Manage your rentals, track deliveries, and browse available products
+        </Typography>
+      </Box>
 
-        {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-          <Tabs value={activeTab} onChange={handleTabChange} aria-label="dashboard tabs">
-            <Tab label="Dashboard" />
-            <Tab label="Browse Products" />
-            <Tab label="Shopping Cart" />
-          </Tabs>
-        </Box>
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={handleTabChange} aria-label="dashboard tabs" sx={{ mb: 3 }}>
+          <Tab label="Dashboard" />
+          <Tab label="Products" />
+          <Tab label="Favorites" />
+          <Tab label="Rentals" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {activeTab === 0 && (
+        <>
+          {/* Stats Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+                      <ShoppingCart />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h4">{stats.totalRentals}</Typography>
+                      <Typography variant="body2" color="text.secondary">Total Rentals</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+                      <LocalShipping />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h4">{stats.activeRentals}</Typography>
+                      <Typography variant="body2" color="text.secondary">Active Rentals</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+                      <AttachMoney />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h4">${stats.totalSpent}</Typography>
+                      <Typography variant="body2" color="text.secondary">Total Spent</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+                      <CalendarToday />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h4">{stats.upcomingDeliveries}</Typography>
+                      <Typography variant="body2" color="text.secondary">Upcoming Deliveries</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Quick Actions */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" gutterBottom>Quick Actions</Typography>
+            <Grid container spacing={2}>
+              {quickActions.map((action) => (
+                <Grid item xs={12} sm={6} md={3} key={action.title}>
+                  <Card 
+                    sx={{ 
+                      cursor: 'pointer', 
+                      '&:hover': { boxShadow: 4 },
+                      transition: 'box-shadow 0.2s'
+                    }}
+                    onClick={() => navigate(action.path)}
+                  >
+                    <CardContent sx={{ textAlign: 'center' }}>
+                      <Avatar sx={{ bgcolor: `${action.color}.main`, mx: 'auto', mb: 2 }}>
+                        {action.icon}
+                      </Avatar>
+                      <Typography variant="subtitle1">{action.title}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          {/* Active Rentals */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" gutterBottom>Active Rentals</Typography>
+            <Grid container spacing={3}>
+              {activeRentals.map((rental) => (
+                <Grid item xs={12} md={6} key={rental.id}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box>
+                          <Typography variant="h6" gutterBottom>{rental.orderNumber}</Typography>
+                          <Chip 
+                            label={rental.status} 
+                            color={getStatusColor(rental.status) as any}
+                            size="small"
+                          />
+                        </Box>
+                        <Typography variant="h6" color="primary">
+                          ${rental.totalAmount}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(rental.startDate).toLocaleDateString()} - {new Date(rental.endDate).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <List dense>
+                        {rental.items.map((item, index) => (
+                          <ListItem key={index} sx={{ py: 0 }}>
+                            <ListItemText
+                              primary={item.productName}
+                              secondary={`Qty: ${item.quantity}`}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          {/* Recent Rentals */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" gutterBottom>Recent Rentals</Typography>
+            <Grid container spacing={3}>
+              {recentRentals.map((rental) => (
+                <Grid item xs={12} md={6} key={rental.id}>
+                  <Card>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box>
+                          <Typography variant="h6" gutterBottom>{rental.orderNumber}</Typography>
+                          <Chip 
+                            label={rental.status} 
+                            color={getStatusColor(rental.status) as any}
+                            size="small"
+                          />
+                        </Box>
+                        <Typography variant="h6" color="primary">
+                          ${rental.totalAmount}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(rental.startDate).toLocaleDateString()} - {new Date(rental.endDate).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                      <List dense>
+                        {rental.items.map((item, index) => (
+                          <ListItem key={index} sx={{ py: 0 }}>
+                            <ListItemText
+                              primary={item.productName}
+                              secondary={`Qty: ${item.quantity}`}
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        </>
+      )}
 
         {/* Cart Popover */}
         <Popover
@@ -383,7 +559,7 @@ const CustomerDashboard: React.FC = () => {
               <Button size="small" onClick={handleCartClose}>Close</Button>
             </Box>
             
-            {cartState?.items?.length === 0 ? (
+            {cartItems?.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 3 }}>
                 <ShoppingCart sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
                 <Typography variant="body2" color="text.secondary">
@@ -393,7 +569,7 @@ const CustomerDashboard: React.FC = () => {
             ) : (
               <>
                 <List sx={{ maxHeight: 300, overflow: 'auto' }}>
-                  {cartState.items.map((item, index) => (
+                  {cartItems.map((item, index) => (
                     <React.Fragment key={item.id}>
                       <ListItem alignItems="flex-start">
                         <ListItemAvatar>
@@ -443,7 +619,7 @@ const CustomerDashboard: React.FC = () => {
                           </Box>
                         </ListItemSecondaryAction>
                       </ListItem>
-                      {index < cartState.items.length - 1 && <Divider />}
+                      {index < cartItems.length - 1 && <Divider />}
                     </React.Fragment>
                   ))}
                 </List>
@@ -453,17 +629,17 @@ const CustomerDashboard: React.FC = () => {
                 <Box sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography>Subtotal:</Typography>
-                    <Typography>${cartState.totalAmount.toFixed(2)}</Typography>
+                    <Typography>${cartItems.reduce((sum, item) => sum + item.totalPrice, 0).toFixed(2)}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography>Security Deposit:</Typography>
-                    <Typography>${cartState.securityDeposit.toFixed(2)}</Typography>
+                    <Typography>${cartItems.reduce((sum, item) => sum + (item.unitPrice * 0.2), 0).toFixed(2)}</Typography>
                   </Box>
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="h6">Total:</Typography>
                     <Typography variant="h6" color="primary" fontWeight="bold">
-                      ${cartState.grandTotal.toFixed(2)}
+                      ${(cartItems.reduce((sum, item) => sum + item.totalPrice, 0) + cartItems.reduce((sum, item) => sum + (item.unitPrice * 0.2), 0)).toFixed(2)}
                     </Typography>
                   </Box>
                 </Box>
@@ -472,7 +648,7 @@ const CustomerDashboard: React.FC = () => {
                   <Button
                     variant="outlined"
                     fullWidth
-                    onClick={clearCart}
+                    onClick={clearRentalCart}
                     color="error"
                     size="small"
                   >
@@ -492,243 +668,9 @@ const CustomerDashboard: React.FC = () => {
           </Box>
         </Popover>
 
-        {/* Tab Content */}
-        {activeTab === 0 && (
-          <>
-            {/* Stats Cards */}
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main' }}>
-                        <Receipt />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" color="primary.main">
-                          {stats.totalRentals}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Rentals
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'success.main' }}>
-                        <LocalShipping />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" color="success.main">
-                          {stats.activeRentals}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Active Rentals
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'warning.main' }}>
-                        <AttachMoney />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" color="warning.main">
-                          ${stats.totalSpent}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Total Spent
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar sx={{ bgcolor: 'info.main' }}>
-                        <CalendarToday />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" color="info.main">
-                          {stats.upcomingDeliveries}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Upcoming Deliveries
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-
-            {/* Quick Actions */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={12}>
-                <Typography variant="h6" gutterBottom>
-                  Quick Actions
-                </Typography>
-              </Grid>
-              {quickActions.map((action, index) => (
-                <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Card 
-                    sx={{ 
-                      cursor: 'pointer',
-                      '&:hover': { 
-                        transform: 'translateY(-2px)',
-                        boxShadow: theme.shadows[8],
-                        transition: 'all 0.2s ease-in-out'
-                      }
-                    }}
-                    onClick={() => navigate(action.path)}
-                  >
-                    <CardContent sx={{ textAlign: 'center' }}>
-                      <Avatar sx={{ bgcolor: `${action.color}.main`, mx: 'auto', mb: 2 }}>
-                        {action.icon}
-                      </Avatar>
-                      <Typography variant="body1">
-                        {action.title}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Active Rentals */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={8}>
-                <Paper sx={{ p: 3 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6">
-                      Active Rentals
-                    </Typography>
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      onClick={() => navigate('/customer/rentals')}
-                    >
-                      View All
-                    </Button>
-                  </Box>
-                  {activeRentals.length > 0 ? (
-                    <List>
-                      {activeRentals.map((rental, index) => (
-                        <React.Fragment key={rental.id}>
-                          <ListItem>
-                            <ListItemAvatar>
-                              <Avatar sx={{ bgcolor: 'primary.main' }}>
-                                <ShoppingCart />
-                              </Avatar>
-                            </ListItemAvatar>
-                            <ListItemText
-                              primary={rental.orderNumber}
-                              secondary={
-                                <Box>
-                                  <Typography variant="body2" component="span">
-                                    {rental.items.map(item => `${item.productName} (x${item.quantity})`).join(', ')}
-                                  </Typography>
-                                  <br />
-                                  <Typography variant="caption" color="text.secondary">
-                                    {rental.startDate} - {rental.endDate} • ${rental.totalAmount}
-                                  </Typography>
-                                </Box>
-                              }
-                            />
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Chip 
-                                label={rental.status} 
-                                color={getStatusColor(rental.status) as any}
-                                size="small"
-                              />
-                              <IconButton size="small" onClick={() => navigate(`/customer/rentals/${rental.id}`)}>
-                                <Visibility />
-                              </IconButton>
-                            </Box>
-                          </ListItem>
-                          {index < activeRentals.length - 1 && <Divider />}
-                        </React.Fragment>
-                      ))}
-                    </List>
-                  ) : (
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Typography variant="body1" color="text.secondary" gutterBottom>
-                        No active rentals
-                      </Typography>
-                      <Button 
-                        variant="contained" 
-                        onClick={() => setActiveTab(1)}
-                      >
-                        Browse Products
-                      </Button>
-                    </Box>
-                  )}
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Recent Activity
-                  </Typography>
-                  {recentRentals.length > 0 ? (
-                    <Box>
-                      {recentRentals.map((rental) => (
-                        <Box key={rental.id} sx={{ mb: 2 }}>
-                          <Typography variant="body2" fontWeight="bold">
-                            {rental.orderNumber}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {rental.startDate} - {rental.endDate}
-                          </Typography>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                            <Chip 
-                              label={rental.status} 
-                              color={getStatusColor(rental.status) as any}
-                              size="small"
-                            />
-                            <Typography variant="body2" fontWeight="bold">
-                              ${rental.totalAmount}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      No recent activity
-                    </Typography>
-                  )}
-                  <Button 
-                    variant="outlined" 
-                    fullWidth 
-                    sx={{ mt: 2 }}
-                    onClick={() => navigate('/customer/rentals')}
-                  >
-                    View Rental History
-                  </Button>
-                </Paper>
-              </Grid>
-            </Grid>
-          </>
-        )}
-
+        {/* Products Header */}
         {activeTab === 1 && (
           <Box>
-            {/* Products Header */}
             <Box sx={{ mb: 3 }}>
               <Typography variant="h5" gutterBottom>
                 Available Products
@@ -778,9 +720,21 @@ const CustomerDashboard: React.FC = () => {
               </Box>
             ) : (
               <Grid container spacing={3}>
-                {filteredProducts.map((product) => (
-                  <Grid item xs={12} sm={6} md={4} key={product.id}>
-                    <ProductCard product={product} />
+                {filteredProducts.map((product: any) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                    <ProductCard 
+                      product={{
+                        ...product,
+                        // Extract category name from nested object
+                        category: product.category?.name || product.category || 'General',
+                        // Extract base price from pricelist items
+                        basePrice: product.basePrice || (product.pricelistItems && product.pricelistItems[0]?.price),
+                        // Determine availability
+                        availability: product.isActive && product.isRentable && (product.availableQuantity || 0) > 0
+                      }}
+                      showActions={true}
+                      compact={false}
+                    />
                   </Grid>
                 ))}
               </Grid>
@@ -800,21 +754,69 @@ const CustomerDashboard: React.FC = () => {
           </Box>
         )}
 
+        {/* Favorites Tab */}
         {activeTab === 2 && (
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                My Favorites
+              </Typography>
+              <Chip 
+                label={`${getFavoritesCount()} items`} 
+                color="primary" 
+                variant="outlined" 
+              />
+            </Box>
+
+            {favoriteItems.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <FavoriteBorder sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  No favorites yet
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Start browsing products and add your favorites here
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={() => setActiveTab(1)}
+                  startIcon={<Add />}
+                >
+                  Browse Products
+                </Button>
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                {favoriteItems.map((favorite) => (
+                  <Grid item xs={12} sm={6} md={4} lg={3} key={favorite.id}>
+                    <ProductCard 
+                      product={{
+                        id: favorite.productId,
+                        name: favorite.name,
+                        description: favorite.description,
+                        image: favorite.image,
+                        basePrice: favorite.basePrice,
+                        category: favorite.category,
+                        availability: favorite.availability,
+                        minimumRentalDays: favorite.minimumRentalDays,
+                        maximumRentalDays: favorite.maximumRentalDays,
+                      }}
+                      showActions={true}
+                      compact={false}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Box>
+        )}
+
+        {/* Rentals Tab */}
+        {activeTab === 3 && (
           <ShoppingCartComponent />
         )}
       </Box>
     );
-  } catch (error) {
-    console.error('Error rendering CustomerDashboard:', error);
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <Typography variant="h6" color="error">
-          An unexpected error occurred. Please try again later.
-        </Typography>
-      </Box>
-    );
-  }
 };
 
 export default CustomerDashboard; 

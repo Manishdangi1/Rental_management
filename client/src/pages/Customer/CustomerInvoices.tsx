@@ -17,12 +17,10 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Stepper,
+  Step,
+  StepLabel,
+  StepContent,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -35,7 +33,13 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import {
   Receipt,
@@ -57,7 +61,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../config/axios';
-import StripePayment from '../../components/Payment/StripePayment';
+import EnhancedPayment from '../../components/Payment/EnhancedPayment';
 
 interface Invoice {
   id: string;
@@ -115,10 +119,40 @@ const CustomerInvoices: React.FC = () => {
       setError(null);
       
       const response = await api.get('/invoices');
-      setInvoices(response.data || []);
+      console.log('Invoices API response:', response.data);
+      
+      // Validate and transform the data
+      const invoicesData = response.data || [];
+      const validatedInvoices = invoicesData.map((invoice: any) => ({
+        id: invoice.id || '',
+        invoiceNumber: invoice.invoiceNumber || `INV-${invoice.id || 'N/A'}`,
+        rentalId: invoice.rentalId || '',
+        orderNumber: invoice.orderNumber || `ORD-${invoice.rentalId || 'N/A'}`,
+        status: invoice.status || 'DRAFT',
+        issueDate: invoice.issueDate || new Date().toISOString(),
+        dueDate: invoice.dueDate || new Date().toISOString(),
+        paidDate: invoice.paidDate || undefined,
+        subtotal: parseFloat(invoice.subtotal) || parseFloat(invoice.amount) || 0,
+        tax: parseFloat(invoice.tax) || 0,
+        discount: parseFloat(invoice.discount) || 0,
+        total: parseFloat(invoice.total) || parseFloat(invoice.amount) || 0,
+        currency: invoice.currency || 'USD',
+        paymentMethod: invoice.paymentMethod || undefined,
+        items: invoice.items || [],
+        customer: invoice.customer || {
+          name: 'N/A',
+          email: 'N/A',
+          address: 'N/A'
+        },
+        notes: invoice.notes || undefined,
+        terms: invoice.terms || undefined
+      }));
+      
+      setInvoices(validatedInvoices);
     } catch (error: any) {
       console.error('Error loading invoices:', error);
       setError(error.response?.data?.message || 'Failed to load invoices');
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -232,14 +266,6 @@ const CustomerInvoices: React.FC = () => {
       .reduce((total, inv) => total + inv.total, 0);
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box>
       {/* Header */}
@@ -252,11 +278,130 @@ const CustomerInvoices: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Error Display */}
+      {/* Loading State */}
+      {loading && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <CircularProgress size={64} />
+          <Typography variant="h6" sx={{ mt: 2 }}>
+            Loading invoices...
+          </Typography>
+        </Box>
+      )}
+
+      {/* Error State */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
         </Alert>
+      )}
+
+      {/* No Invoices */}
+      {!loading && !error && invoices.length === 0 && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Receipt sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No invoices found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            You don't have any invoices yet. Invoices will appear here once you create rentals.
+          </Typography>
+        </Box>
+      )}
+
+      {/* Invoices Table */}
+      {!loading && !error && invoices.length > 0 && (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Invoice</TableCell>
+                <TableCell>Order</TableCell>
+                <TableCell>Issue Date</TableCell>
+                <TableCell>Due Date</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {getFilteredInvoices().map((invoice) => (
+                <TableRow key={invoice.id} hover>
+                  <TableCell>
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {invoice.invoiceNumber}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {(invoice.items || []).length} items
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {invoice.orderNumber}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {new Date(invoice.issueDate).toLocaleDateString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {new Date(invoice.dueDate).toLocaleDateString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      icon={getStatusIcon(invoice.status)}
+                      label={getStatusLabel(invoice.status)}
+                      color={getStatusColor(invoice.status) as any}
+                      size="small"
+                      variant={invoice.status === 'DRAFT' ? 'outlined' : 'filled'}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" fontWeight="bold">
+                      ${(invoice.total || 0).toFixed(2)}
+                    </Typography>
+                    {(invoice.discount || 0) > 0 && (
+                      <Typography variant="caption" color="success.main">
+                        -${(invoice.discount || 0).toFixed(2)} discount
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleViewDetails(invoice)}
+                        title="View Details"
+                      >
+                        <Visibility />
+                      </IconButton>
+                      <IconButton
+                        color="secondary"
+                        onClick={() => handleDownloadInvoice(invoice)}
+                        title="Download"
+                      >
+                        <Download />
+                      </IconButton>
+                      {['SENT', 'OVERDUE'].includes(invoice.status) && (
+                        <IconButton
+                          color="success"
+                          onClick={() => handleMakePayment(invoice)}
+                          title="Make Payment"
+                        >
+                          <Payment />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       {/* Summary Cards */}
@@ -391,120 +536,6 @@ const CustomerInvoices: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* Invoices Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Invoice</TableCell>
-              <TableCell>Order</TableCell>
-              <TableCell>Issue Date</TableCell>
-              <TableCell>Due Date</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell align="center">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {getFilteredInvoices().map((invoice) => (
-              <TableRow key={invoice.id} hover>
-                <TableCell>
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight="bold">
-                      {invoice.invoiceNumber}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {(invoice.items || []).length} items
-                    </Typography>
-                  </Box>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {invoice.orderNumber}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {new Date(invoice.issueDate).toLocaleDateString()}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {new Date(invoice.dueDate).toLocaleDateString()}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Chip
-                    icon={getStatusIcon(invoice.status)}
-                    label={getStatusLabel(invoice.status)}
-                    color={getStatusColor(invoice.status) as any}
-                    size="small"
-                    variant={invoice.status === 'DRAFT' ? 'outlined' : 'filled'}
-                  />
-                </TableCell>
-                <TableCell align="right">
-                  <Typography variant="subtitle2" fontWeight="bold">
-                    ${invoice.total.toFixed(2)}
-                  </Typography>
-                  {invoice.discount > 0 && (
-                    <Typography variant="caption" color="success.main">
-                      -${invoice.discount.toFixed(2)} discount
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell align="center">
-                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                    <IconButton
-                      color="primary"
-                      onClick={() => handleViewDetails(invoice)}
-                      title="View Details"
-                    >
-                      <Visibility />
-                    </IconButton>
-                    <IconButton
-                      color="secondary"
-                      onClick={() => handleDownloadInvoice(invoice)}
-                      title="Download"
-                    >
-                      <Download />
-                    </IconButton>
-                    {['SENT', 'OVERDUE'].includes(invoice.status) && (
-                      <IconButton
-                        color="success"
-                        onClick={() => handleMakePayment(invoice)}
-                        title="Make Payment"
-                      >
-                        <Payment />
-                      </IconButton>
-                    )}
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* No Invoices */}
-      {getFilteredInvoices().length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Receipt sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No {filter === 'all' ? '' : filter} invoices found
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {filter === 'unpaid' 
-              ? 'You have no unpaid invoices.'
-              : filter === 'paid'
-              ? 'You have no paid invoices yet.'
-              : filter === 'overdue'
-              ? 'You have no overdue invoices.'
-              : 'You have no invoices yet.'
-            }
-          </Typography>
-        </Box>
-      )}
-
       {/* Invoice Detail Dialog */}
       <Dialog
         open={detailDialogOpen}
@@ -539,16 +570,16 @@ const CustomerInvoices: React.FC = () => {
                           Invoice Details
                         </Typography>
                         <Typography variant="body2" gutterBottom>
-                          <strong>Invoice Number:</strong> {selectedInvoice.invoiceNumber}
+                          <strong>Invoice Number:</strong> {selectedInvoice.invoiceNumber || 'N/A'}
                         </Typography>
                         <Typography variant="body2" gutterBottom>
-                          <strong>Order Number:</strong> {selectedInvoice.orderNumber}
+                          <strong>Order Number:</strong> {selectedInvoice.orderNumber || 'N/A'}
                         </Typography>
                         <Typography variant="body2" gutterBottom>
-                          <strong>Issue Date:</strong> {new Date(selectedInvoice.issueDate).toLocaleDateString()}
+                          <strong>Issue Date:</strong> {selectedInvoice.issueDate ? new Date(selectedInvoice.issueDate).toLocaleDateString() : 'N/A'}
                         </Typography>
                         <Typography variant="body2">
-                          <strong>Due Date:</strong> {new Date(selectedInvoice.dueDate).toLocaleDateString()}
+                          <strong>Due Date:</strong> {selectedInvoice.dueDate ? new Date(selectedInvoice.dueDate).toLocaleDateString() : 'N/A'}
                         </Typography>
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -557,23 +588,23 @@ const CustomerInvoices: React.FC = () => {
                         </Typography>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography>Subtotal:</Typography>
-                          <Typography>${selectedInvoice.subtotal.toFixed(2)}</Typography>
+                          <Typography>${(selectedInvoice.subtotal || 0).toFixed(2)}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                           <Typography>Tax:</Typography>
-                          <Typography>${selectedInvoice.tax.toFixed(2)}</Typography>
+                          <Typography>${(selectedInvoice.tax || 0).toFixed(2)}</Typography>
                         </Box>
-                        {selectedInvoice.discount > 0 && (
+                        {(selectedInvoice.discount || 0) > 0 && (
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                             <Typography>Discount:</Typography>
-                            <Typography color="success.main">-${selectedInvoice.discount.toFixed(2)}</Typography>
+                            <Typography color="success.main">-${(selectedInvoice.discount || 0).toFixed(2)}</Typography>
                           </Box>
                         )}
                         <Divider sx={{ my: 1 }} />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="h6">Total:</Typography>
                           <Typography variant="h6" color="primary">
-                            ${selectedInvoice.total.toFixed(2)}
+                            ${(selectedInvoice.total || 0).toFixed(2)}
                           </Typography>
                         </Box>
                       </Grid>
@@ -599,31 +630,39 @@ const CustomerInvoices: React.FC = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {selectedInvoice.items.map((item, index) => (
+                          {selectedInvoice.items?.map((item, index) => (
                             <TableRow key={index}>
                               <TableCell>
                                 <Typography variant="subtitle2">
-                                  {item.productName}
+                                  {item.productName || 'N/A'}
                                 </Typography>
                               </TableCell>
                               <TableCell>
                                 <Typography variant="body2" color="text.secondary">
-                                  {item.description}
+                                  {item.description || 'No description'}
                                 </Typography>
                               </TableCell>
                               <TableCell align="right">
-                                {item.quantity}
+                                {item.quantity || 0}
                               </TableCell>
                               <TableCell align="right">
-                                ${item.unitPrice.toFixed(2)}
+                                ${(item.unitPrice || 0).toFixed(2)}
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="subtitle2">
-                                  ${item.totalPrice.toFixed(2)}
+                                  ${(item.totalPrice || 0).toFixed(2)}
                                 </Typography>
                               </TableCell>
                             </TableRow>
-                          ))}
+                          )) || (
+                            <TableRow>
+                              <TableCell colSpan={5} align="center">
+                                <Typography variant="body2" color="text.secondary">
+                                  No items found
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          )}
                         </TableBody>
                       </Table>
                     </TableContainer>
@@ -638,7 +677,7 @@ const CustomerInvoices: React.FC = () => {
                         Payment Information
                       </Typography>
                       <Typography variant="body2" gutterBottom>
-                        <strong>Method:</strong> {selectedInvoice.paymentMethod}
+                        <strong>Method:</strong> {selectedInvoice.paymentMethod || 'N/A'}
                       </Typography>
                       {selectedInvoice.paidDate && (
                         <Typography variant="body2" color="success.main">
@@ -650,23 +689,32 @@ const CustomerInvoices: React.FC = () => {
                 )}
 
                 {/* Terms and Notes */}
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Terms & Notes
-                    </Typography>
-                    {selectedInvoice.terms && (
-                      <Typography variant="body2" gutterBottom>
-                        <strong>Terms:</strong> {selectedInvoice.terms}
-                      </Typography>
-                    )}
-                    {selectedInvoice.notes && (
-                      <Typography variant="body2">
-                        <strong>Notes:</strong> {selectedInvoice.notes}
-                      </Typography>
-                    )}
-                  </Paper>
-                </Grid>
+                {(selectedInvoice.terms || selectedInvoice.notes) && (
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 2 }}>
+                      {selectedInvoice.terms && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            <strong>Terms:</strong>
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {selectedInvoice.terms}
+                          </Typography>
+                        </Box>
+                      )}
+                      {selectedInvoice.notes && (
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>
+                            <strong>Notes:</strong>
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {selectedInvoice.notes}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Paper>
+                  </Grid>
+                )}
               </Grid>
             </DialogContent>
             <DialogActions>
@@ -696,7 +744,7 @@ const CustomerInvoices: React.FC = () => {
       <Dialog
         open={paymentDialogOpen}
         onClose={() => setPaymentDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
       >
         <DialogTitle>
@@ -709,14 +757,14 @@ const CustomerInvoices: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           {selectedInvoice && (
-            <StripePayment
-              invoiceId={selectedInvoice.id}
-              amount={selectedInvoice.total}
-              currency={selectedInvoice.currency}
-              description={`Payment for invoice ${selectedInvoice.invoiceNumber}`}
+            <EnhancedPayment
+              invoiceId={selectedInvoice.id || ''}
+              amount={selectedInvoice.total || 0}
+              currency={selectedInvoice.currency || 'USD'}
+              description={`Payment for invoice ${selectedInvoice.invoiceNumber || 'N/A'}`}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
-              onCancel={handlePaymentCancel}
+              onCancel={() => setPaymentDialogOpen(false)}
             />
           )}
         </DialogContent>

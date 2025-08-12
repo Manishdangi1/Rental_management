@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -19,7 +19,7 @@ model User {
   state         String?
   zipCode       String?
   country       String?
-  role          UserRole       @default(CUSTOMER)
+  role          String         @default("CUSTOMER")
   isActive      Boolean        @default(true)
   emailVerified Boolean        @default(false)
   profileImage  String?
@@ -55,14 +55,13 @@ model Product {
   categoryId         String
   isRentable         Boolean               @default(true)
   isActive           Boolean               @default(true)
-  images             String[]
-  specifications     Json?
+  specifications     String?
   totalQuantity      Int                   @default(1)
   availableQuantity  Int                   @default(1)
   minimumRentalDays  Int                   @default(1)
   maximumRentalDays  Int?
   weight             Float?
-  dimensions         Json?
+  dimensions         String?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
   basePrice          Float?
@@ -119,7 +118,7 @@ model Pricelist {
   isActive     Boolean         @default(true)
   validFrom    DateTime
   validTo      DateTime?
-  customerType CustomerType?
+  customerType String?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   items        PricelistItem[]
@@ -131,7 +130,7 @@ model PricelistItem {
   id                 String       @id @default(cuid())
   pricelistId        String
   productId          String
-  rentalType         RentalType
+  rentalType         String
   price              Float
   currency           String       @default("USD")
   minimumDays        Int          @default(1)
@@ -142,7 +141,7 @@ model PricelistItem {
   bulkDiscount       Boolean      @default(false)
   bulkDiscountAmount Float?
   bulkThreshold      Int?
-  discountType       DiscountType @default(PERCENTAGE)
+  discountType       String       @default("PERCENTAGE")
   seasonalMultiplier Float?
   validFrom          DateTime     @default(now())
   validTo            DateTime?
@@ -156,7 +155,7 @@ model PricelistItem {
 model Rental {
   id              String         @id @default(cuid())
   customerId      String
-  status          RentalStatus   @default(QUOTATION)
+  status          String         @default("QUOTATION")
   startDate       DateTime?
   endDate         DateTime?
   totalAmount     Float          @default(0)
@@ -205,8 +204,8 @@ model RentalItem {
 model Delivery {
   id           String         @id @default(cuid())
   rentalId     String
-  type         DeliveryType
-  status       DeliveryStatus @default(SCHEDULED)
+  type         String
+  status       String         @default("SCHEDULED")
   scheduledAt  DateTime
   completedAt  DateTime?
   address      String
@@ -226,8 +225,8 @@ model Payment {
   customerId     String
   amount         Float
   currency       String        @default("USD")
-  status         PaymentStatus @default(PENDING)
-  method         PaymentMethod
+  status         String        @default("PENDING")
+  method         String
   transactionId  String?
   stripeIntentId String?
   description    String?
@@ -247,7 +246,7 @@ model Invoice {
   amount        Float
   tax           Float         @default(0)
   total         Float
-  status        InvoiceStatus @default(DRAFT)
+  status        String        @default("DRAFT")
   dueDate       DateTime
   paidAt        DateTime?
   notes         String?
@@ -263,13 +262,13 @@ model Notification {
   id       String              @id @default(cuid())
   userId   String
   rentalId String?
-  type     NotificationType
+  type     String
   title    String
   message  String
   isRead   Boolean             @default(false)
   sentAt   DateTime            @default(now())
   readAt   DateTime?
-  channel  NotificationChannel @default(EMAIL)
+  channel  String              @default("EMAIL")
   rental   Rental?             @relation(fields: [rentalId], references: [id])
   user     User                @relation(fields: [userId], references: [id])
 
@@ -284,92 +283,4 @@ model SystemSetting {
   updatedAt   DateTime @updatedAt
 
   @@map("system_settings")
-}
-
-enum UserRole {
-  CUSTOMER
-  ADMIN
-}
-
-enum CustomerType {
-  REGULAR
-  VIP
-  CORPORATE
-  WHOLESALE
-}
-
-enum DiscountType {
-  PERCENTAGE
-  FIXED_AMOUNT
-}
-
-enum RentalType {
-  HOURLY
-  DAILY
-  WEEKLY
-  MONTHLY
-  YEARLY
-}
-
-enum RentalStatus {
-  QUOTATION
-  QUOTATION_SENT
-  PICKED_UP
-  RETURNED
-  RESERVED
-}
-
-enum InvoiceStatus {
-  DRAFT
-  SENT
-  PAID
-  OVERDUE
-  CANCELLED
-}
-
-enum DeliveryStatus {
-  SCHEDULED
-  IN_TRANSIT
-  COMPLETED
-  CANCELLED
-}
-
-enum DeliveryType {
-  PICKUP
-  RETURN
-}
-
-enum NotificationChannel {
-  EMAIL
-  SMS
-  PORTAL
-  PUSH
-}
-
-enum NotificationType {
-  RENTAL_CONFIRMATION
-  PICKUP_REMINDER
-  RETURN_REMINDER
-  PAYMENT_CONFIRMATION
-  LATE_RETURN_WARNING
-  SYSTEM_UPDATE
-}
-
-enum PaymentMethod {
-  CREDIT_CARD
-  DEBIT_CARD
-  BANK_TRANSFER
-  CASH
-  CHECK
-  STRIPE
-  PAYPAL
-}
-
-enum PaymentStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  REFUNDED
-  CANCELLED
 }

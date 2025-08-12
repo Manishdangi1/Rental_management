@@ -27,7 +27,13 @@ import {
   DialogActions,
   Alert,
   CircularProgress,
-  Badge
+  Badge,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
 import {
   LocalShipping,
@@ -41,7 +47,9 @@ import {
   Home,
   Business,
   AccessTime,
-  CalendarToday
+  CalendarToday,
+  Search,
+  FilterList
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -91,6 +99,7 @@ const CustomerDeliveries: React.FC = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -153,13 +162,26 @@ const CustomerDeliveries: React.FC = () => {
   };
 
   const getFilteredDeliveries = () => {
-    const deliveriesArray = deliveries || [];
+    let filtered = deliveries || [];
+
+    // Apply status filter
     if (filter === 'upcoming') {
-      return deliveriesArray.filter(d => ['SCHEDULED', 'IN_TRANSIT'].includes(d.status));
+      filtered = filtered.filter(d => ['SCHEDULED', 'IN_TRANSIT'].includes(d.status));
     } else if (filter === 'completed') {
-      return deliveriesArray.filter(d => ['DELIVERED', 'PICKED_UP', 'RETURNED'].includes(d.status));
+      filtered = filtered.filter(d => ['DELIVERED', 'PICKED_UP', 'RETURNED'].includes(d.status));
     }
-    return deliveriesArray;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(d =>
+        d.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.driver?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.address?.street.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
   };
 
   const handleViewDetails = (delivery: Delivery) => {
@@ -170,6 +192,9 @@ const CustomerDeliveries: React.FC = () => {
   const handleContactDriver = (phone: string) => {
     window.open(`tel:${phone}`, '_self');
   };
+
+  const upcomingCount = (deliveries || []).filter(d => ['SCHEDULED', 'IN_TRANSIT'].includes(d.status)).length;
+  const completedCount = (deliveries || []).filter(d => ['DELIVERED', 'PICKED_UP', 'RETURNED'].includes(d.status)).length;
 
   if (loading) {
     return (
@@ -198,41 +223,171 @@ const CustomerDeliveries: React.FC = () => {
         </Alert>
       )}
 
-      {/* Filter Buttons */}
-      <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2}>
-          <Grid item>
-            <Button
-              variant={filter === 'all' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('all')}
-            >
-              All Deliveries ({(deliveries || []).length})
-            </Button>
+      {/* Summary Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            bgcolor: 'primary.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                  <LocalShipping />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" color="primary.main">
+                    {(deliveries || []).length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Deliveries
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            bgcolor: 'info.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'info.main' }}>
+                  <Schedule />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" color="info.main">
+                    {upcomingCount}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Upcoming
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            bgcolor: 'success.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'success.main' }}>
+                  <CheckCircle />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" color="success.main">
+                    {completedCount}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Completed
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ 
+            bgcolor: 'warning.50',
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-2px)',
+              transition: 'all 0.3s ease-in-out'
+            }
+          }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'warning.main' }}>
+                  <DirectionsCar />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" color="warning.main">
+                    {(deliveries || []).filter(d => d.type === 'PICKUP').length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Pickups
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Filters and Search */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              placeholder="Search deliveries..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+              }}
+            />
           </Grid>
-          <Grid item>
-            <Button
-              variant={filter === 'upcoming' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('upcoming')}
-            >
-              Upcoming ({(deliveries || []).filter(d => ['SCHEDULED', 'IN_TRANSIT'].includes(d.status)).length})
-            </Button>
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth>
+              <InputLabel>Filter by Status</InputLabel>
+              <Select
+                value={filter}
+                label="Filter by Status"
+                onChange={(e: SelectChangeEvent) => setFilter(e.target.value as any)}
+              >
+                <MenuItem value="all">All ({(deliveries || []).length})</MenuItem>
+                <MenuItem value="upcoming">Upcoming ({upcomingCount})</MenuItem>
+                <MenuItem value="completed">Completed ({completedCount})</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
-          <Grid item>
-            <Button
-              variant={filter === 'completed' ? 'contained' : 'outlined'}
-              onClick={() => setFilter('completed')}
-            >
-              Completed ({(deliveries || []).filter(d => ['DELIVERED', 'PICKED_UP', 'RETURNED'].includes(d.status)).length})
-            </Button>
+          <Grid item xs={12} md={4}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<FilterList />}
+                onClick={() => setFilter('all')}
+              >
+                Clear Filters
+              </Button>
+            </Box>
           </Grid>
         </Grid>
-      </Box>
+      </Paper>
 
       {/* Deliveries List */}
       <Grid container spacing={3}>
         {getFilteredDeliveries().map((delivery) => (
           <Grid item xs={12} key={delivery.id}>
-            <Card>
+            <Card 
+              sx={{ 
+                borderLeft: 4, 
+                borderColor: `${getStatusColor(delivery.status)}.main`,
+                '&:hover': {
+                  boxShadow: theme.shadows[8],
+                  transform: 'translateY(-2px)',
+                  transition: 'all 0.3s ease-in-out'
+                }
+              }}
+            >
               <CardContent>
                 <Grid container spacing={3} alignItems="center">
                   {/* Status and Type */}

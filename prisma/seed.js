@@ -185,20 +185,19 @@ async function main() {
         categoryId: categories[0].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/drill-set-1.jpg', '/images/products/drill-set-2.jpg'],
-        specifications: {
+        specifications: JSON.stringify({
           brand: 'ProTool',
           power: '1200W',
           voltage: '120V',
           weight: '2.5kg',
           includes: ['Drill', 'Charger', '5 drill bits', 'Carrying case']
-        },
+        }),
         totalQuantity: 10,
         availableQuantity: 8,
         minimumRentalDays: 1,
         maximumRentalDays: 30,
         weight: 2.5,
-        dimensions: { length: 30, width: 15, height: 25 }
+        dimensions: JSON.stringify({ length: 30, width: 15, height: 25 })
       }
     }),
     prisma.product.create({
@@ -209,20 +208,19 @@ async function main() {
         categoryId: categories[1].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/tent-1.jpg', '/images/products/tent-2.jpg'],
-        specifications: {
+        specifications: JSON.stringify({
           brand: 'EventPro',
           dimensions: '20ft x 30ft',
           capacity: '100 people',
           material: 'Waterproof polyester',
           includes: ['Tent', 'Poles', 'Stakes', 'Carrying bag']
-        },
+        }),
         totalQuantity: 5,
         availableQuantity: 3,
         minimumRentalDays: 1,
         maximumRentalDays: 7,
         weight: 45.0,
-        dimensions: { length: 600, width: 900, height: 300 }
+        dimensions: JSON.stringify({ length: 600, width: 900, height: 300 })
       }
     }),
     prisma.product.create({
@@ -233,21 +231,20 @@ async function main() {
         categoryId: categories[2].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/excavator-1.jpg'],
-        specifications: {
+        specifications: JSON.stringify({
           brand: 'ConstructionMax',
           engine: 'Diesel',
           horsepower: '25HP',
           bucketCapacity: '0.1 cubic yards',
           weight: '2.5 tons',
           includes: ['Machine', 'Bucket', 'Operator manual']
-        },
+        }),
         totalQuantity: 2,
         availableQuantity: 1,
         minimumRentalDays: 1,
         maximumRentalDays: 90,
         weight: 2500.0,
-        dimensions: { length: 400, width: 150, height: 220 }
+        dimensions: JSON.stringify({ length: 400, width: 150, height: 220 })
       }
     }),
     prisma.product.create({
@@ -258,20 +255,19 @@ async function main() {
         categoryId: categories[3].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/projector-1.jpg', '/images/products/projector-2.jpg'],
-        specifications: {
+        specifications: JSON.stringify({
           brand: 'TechPro',
           resolution: '1920x1080',
           brightness: '3000 lumens',
           connectivity: ['HDMI', 'VGA', 'USB', 'WiFi'],
           includes: ['Projector', 'Remote', 'Power cable', 'Carrying case']
-        },
+        }),
         totalQuantity: 8,
         availableQuantity: 6,
         minimumRentalDays: 1,
         maximumRentalDays: 14,
         weight: 2.8,
-        dimensions: { length: 28, width: 20, height: 8 }
+        dimensions: JSON.stringify({ length: 28, width: 20, height: 8 })
       }
     }),
     prisma.product.create({
@@ -282,19 +278,18 @@ async function main() {
         categoryId: categories[4].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/office-chairs-1.jpg'],
-        specifications: {
+        specifications: JSON.stringify({
           brand: 'ComfortMax',
           material: 'Mesh fabric',
           features: ['Adjustable height', 'Lumbar support', 'Swivel', 'Rolling wheels'],
           includes: ['10 chairs', 'Assembly tools', 'Care instructions']
-        },
+        }),
         totalQuantity: 5,
         availableQuantity: 3,
         minimumRentalDays: 7,
         maximumRentalDays: 365,
         weight: 15.0,
-        dimensions: { length: 60, width: 60, height: 120 }
+        dimensions: JSON.stringify({ length: 60, width: 60, height: 120 })
       }
     }),
     prisma.product.create({
@@ -305,66 +300,226 @@ async function main() {
         categoryId: categories[5].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/moving-truck-1.jpg'],
-        specifications: {
-          brand: 'MovePro',
-          capacity: '24ft',
+        specifications: JSON.stringify({
+          brand: 'RentAMove',
+          capacity: '24 feet',
           fuelType: 'Gasoline',
           transmission: 'Automatic',
           includes: ['Truck', 'Fuel', 'Insurance', 'Moving blankets']
-        },
+        }),
         totalQuantity: 3,
         availableQuantity: 2,
         minimumRentalDays: 1,
         maximumRentalDays: 7,
-        weight: 3500.0,
-        dimensions: { length: 720, width: 240, height: 300 }
+        weight: 4500.0,
+        dimensions: JSON.stringify({ length: 720, width: 240, height: 300 })
       }
     }),
     prisma.product.create({
       data: {
-        name: 'Basketball Court Setup',
-        description: 'Complete basketball court setup for events',
-        sku: 'SPORT-001',
-        categoryId: categories[6].id,
+        name: 'Laptop Workstation',
+        description: 'High-performance laptop with docking station for remote work',
+        sku: 'TECH-001',
+        categoryId: categories[3].id,
         isRentable: true,
         isActive: true,
-        images: ['/images/products/basketball-court-1.jpg'],
-        specifications: {
-          brand: 'SportEvent',
-          courtSize: 'Full court',
-          surface: 'Professional vinyl',
-          includes: ['Court surface', 'Baskets', 'Scoreboard', 'Balls', 'Setup crew']
-        },
-        totalQuantity: 2,
-        availableQuantity: 1,
-        minimumRentalDays: 1,
-        maximumRentalDays: 7,
-        weight: 500.0,
-        dimensions: { length: 2800, width: 1500, height: 300 }
-      }
-    }),
-    prisma.product.create({
-      data: {
-        name: 'Hospital Bed',
-        description: 'Electric hospital bed for medical facilities',
-        sku: 'MED-001',
-        categoryId: categories[7].id,
-        isRentable: true,
-        isActive: true,
-        images: ['/images/products/hospital-bed-1.jpg'],
-        specifications: {
-          brand: 'MedEquip',
-          type: 'Electric',
-          features: ['Adjustable height', 'Trendelenburg', 'Side rails', 'Wheels'],
-          includes: ['Bed', 'Mattress', 'Remote control', 'Delivery and setup']
-        },
+        specifications: JSON.stringify({
+          brand: 'TechPro',
+          processor: 'Intel i7-11th Gen',
+          ram: '16GB DDR4',
+          storage: '512GB SSD',
+          display: '15.6" Full HD',
+          includes: ['Laptop', 'Docking station', 'Mouse', 'Keyboard', 'Charger']
+        }),
         totalQuantity: 15,
         availableQuantity: 12,
-        minimumRentalDays: 30,
-        maximumRentalDays: 365,
-        weight: 120.0,
-        dimensions: { length: 210, width: 100, height: 60 }
+        minimumRentalDays: 1,
+        maximumRentalDays: 90,
+        weight: 2.2,
+        dimensions: JSON.stringify({ length: 36, width: 24, height: 2 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Garden Tools Set',
+        description: 'Complete set of professional garden tools for landscaping',
+        sku: 'GARDEN-001',
+        categoryId: categories[0].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'GreenThumb',
+          includes: ['Shovel', 'Rake', 'Hoe', 'Pruners', 'Gloves', 'Tool belt'],
+          material: 'Stainless steel',
+          handleMaterial: 'Hardwood'
+        }),
+        totalQuantity: 20,
+        availableQuantity: 18,
+        minimumRentalDays: 1,
+        maximumRentalDays: 30,
+        weight: 8.5,
+        dimensions: JSON.stringify({ length: 120, width: 40, height: 15 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Sound System Pro',
+        description: 'Professional sound system for events and parties',
+        sku: 'AUDIO-001',
+        categoryId: categories[3].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'SoundMax',
+          power: '2000W RMS',
+          speakers: '2x 15" woofers, 2x horn tweeters',
+          connectivity: ['Bluetooth', 'USB', 'XLR', 'RCA'],
+          includes: ['Speakers', 'Mixer', 'Microphones', 'Cables', 'Stands']
+        }),
+        totalQuantity: 6,
+        availableQuantity: 4,
+        minimumRentalDays: 1,
+        maximumRentalDays: 14,
+        weight: 45.0,
+        dimensions: JSON.stringify({ length: 60, width: 40, height: 80 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Camping Equipment Set',
+        description: 'Complete camping set for outdoor adventures',
+        sku: 'OUTDOOR-001',
+        categoryId: categories[1].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'AdventurePro',
+          includes: ['4-person tent', 'Sleeping bags', 'Camping stove', 'Cooler', 'Lantern'],
+          tentCapacity: '4 people',
+          weatherRating: '3-season',
+          material: 'Waterproof nylon'
+        }),
+        totalQuantity: 12,
+        availableQuantity: 10,
+        minimumRentalDays: 2,
+        maximumRentalDays: 21,
+        weight: 25.0,
+        dimensions: JSON.stringify({ length: 80, width: 60, height: 40 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Photography Studio Kit',
+        description: 'Professional photography studio setup for portraits and events',
+        sku: 'PHOTO-001',
+        categoryId: categories[3].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'PhotoPro',
+          includes: ['Camera', 'Lenses', 'Lighting setup', 'Backdrop', 'Tripod'],
+          camera: 'Canon EOS R6',
+          resolution: '20.1MP',
+          video: '4K recording'
+        }),
+        totalQuantity: 4,
+        availableQuantity: 3,
+        minimumRentalDays: 1,
+        maximumRentalDays: 14,
+        weight: 12.0,
+        dimensions: JSON.stringify({ length: 50, width: 40, height: 30 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Fitness Equipment Set',
+        description: 'Complete home gym setup for fitness enthusiasts',
+        sku: 'FITNESS-001',
+        categoryId: categories[4].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'FitMax',
+          includes: ['Treadmill', 'Dumbbells', 'Resistance bands', 'Yoga mat', 'Bench'],
+          treadmill: 'Motorized, 12 programs',
+          weightRange: '5-50 lbs dumbbells',
+          spaceRequired: '10x12 feet'
+        }),
+        totalQuantity: 8,
+        availableQuantity: 6,
+        minimumRentalDays: 7,
+        maximumRentalDays: 180,
+        weight: 150.0,
+        dimensions: JSON.stringify({ length: 180, width: 144, height: 60 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Cleaning Equipment Set',
+        description: 'Professional cleaning equipment for commercial and residential use',
+        sku: 'CLEAN-001',
+        categoryId: categories[0].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'CleanPro',
+          includes: ['Vacuum cleaner', 'Steam mop', 'Floor buffer', 'Cleaning supplies'],
+          vacuumPower: '2000W',
+          steamTemperature: '212°F',
+          suitableFor: ['Hardwood', 'Tile', 'Carpet']
+        }),
+        totalQuantity: 15,
+        availableQuantity: 13,
+        minimumRentalDays: 1,
+        maximumRentalDays: 30,
+        weight: 35.0,
+        dimensions: JSON.stringify({ length: 100, width: 60, height: 40 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Wedding Decor Package',
+        description: 'Elegant wedding decoration package for special occasions',
+        sku: 'EVENT-001',
+        categoryId: categories[1].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'EleganceEvents',
+          includes: ['Table linens', 'Chair covers', 'Centerpieces', 'Lighting', 'Arches'],
+          colorOptions: ['White', 'Ivory', 'Champagne', 'Rose gold'],
+          setupIncluded: true,
+          capacity: 'Up to 200 guests'
+        }),
+        totalQuantity: 10,
+        availableQuantity: 8,
+        minimumRentalDays: 1,
+        maximumRentalDays: 3,
+        weight: 80.0,
+        dimensions: JSON.stringify({ length: 200, width: 150, height: 100 })
+      }
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Medical Equipment Kit',
+        description: 'Essential medical equipment for healthcare professionals',
+        sku: 'MEDICAL-001',
+        categoryId: categories[3].id,
+        isRentable: true,
+        isActive: true,
+        specifications: JSON.stringify({
+          brand: 'MediCare',
+          includes: ['Blood pressure monitor', 'Thermometer', 'Stethoscope', 'Pulse oximeter'],
+          accuracy: 'FDA approved',
+          batteryLife: 'Up to 1000 readings',
+          suitableFor: ['Home care', 'Clinics', 'Emergency response']
+        }),
+        totalQuantity: 25,
+        availableQuantity: 22,
+        minimumRentalDays: 1,
+        maximumRentalDays: 90,
+        weight: 3.5,
+        dimensions: JSON.stringify({ length: 30, width: 25, height: 15 })
       }
     })
   ]);

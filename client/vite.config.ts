@@ -9,7 +9,7 @@ export default defineConfig({
     strictPort: false, // Allow fallback to other ports if 3000 is busy
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api'),

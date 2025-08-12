@@ -28,7 +28,7 @@ const StripePayment: React.FC<StripePaymentProps> = ({
 
   useEffect(() => {
     // Check if Stripe is configured
-    const key = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    const key = (import.meta as any).env?.VITE_STRIPE_PUBLISHABLE_KEY;
     if (key && key !== 'pk_test_your_stripe_publishable_key_here' && key.startsWith('pk_')) {
       setStripeLoaded(true);
     } else {

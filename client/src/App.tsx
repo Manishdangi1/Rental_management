@@ -41,15 +41,16 @@ import AdminRentalProducts from './pages/Admin/AdminRentalProducts';
 import AdminCategories from './pages/Admin/AdminCategories';
 import AdminReports from './pages/Admin/AdminReports';
 import AdminSettings from './pages/Admin/AdminSettings';
+import AdminDeliveries from './pages/Admin/AdminDeliveries';
 
 // Shared Components
 import CartPage from './pages/Cart/CartPage';
 import CheckoutPage from './pages/Checkout/CheckoutPage';
-import RentalCheckout from './pages/Rentals/RentalCheckout';
 
 // Context
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { FavoritesProvider } from './contexts/FavoritesContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 
 // Create theme
@@ -109,252 +110,253 @@ function App() {
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <AuthProvider>
             <CartProvider>
-              <Router>
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/home" element={<HomePage />} />
-                    <Route path="/products" element={<ProductsPage />} />
-                    <Route path="/products/:id" element={<ProductDetailPage />} />
-                    
-                    {/* Authentication Routes */}
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                    <Route path="/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/verify-email" element={<VerifyEmailPage />} />
-                    
-                    {/* Customer Routes */}
-                    <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
-                    <Route
-                      path="/customer/dashboard"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerDashboard />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/customer/rentals"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerRentals />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/customer/profile"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerProfile />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/customer/deliveries"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerDeliveries />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/customer/invoices"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerInvoices />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/customer/payments"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerPayments />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/customer/notifications"
-                      element={
-                        <RoleGuard allowedRoles={['CUSTOMER']}>
-                          <SidebarProvider>
-                            <CustomerLayout>
-                              <CustomerNotifications />
-                            </CustomerLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    
-                    {/* Admin Routes */}
-                    <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                    <Route
-                      path="/admin/dashboard"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminDashboard />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/users"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminUsers />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/rentals"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminRentals />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/products"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminProducts />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/rental-products"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminRentalProducts />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/categories"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminCategories />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/reports"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminReports />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    <Route
-                      path="/admin/settings"
-                      element={
-                        <RoleGuard allowedRoles={['ADMIN']}>
-                          <SidebarProvider>
-                            <AdminLayout>
-                              <AdminSettings />
-                            </AdminLayout>
-                          </SidebarProvider>
-                        </RoleGuard>
-                      }
-                    />
-                    
-                    {/* Shared Routes */}
-                    <Route
-                      path="/cart"
-                      element={
-                        <AuthGuard>
-                          <Navbar />
-                          <CartPage />
-                        </AuthGuard>
-                      }
-                    />
-                    <Route
-                      path="/checkout"
-                      element={
-                        <AuthGuard>
-                          <Navbar />
-                          <CheckoutPage />
-                        </AuthGuard>
-                      }
-                    />
-                    <Route
-                      path="/rental-checkout"
-                      element={
-                        <AuthGuard>
-                          <Navbar />
-                          <RentalCheckout />
-                        </AuthGuard>
-                      }
-                    />
-                    
-                    {/* Legacy Routes - Redirect to appropriate dashboard */}
-                    <Route
-                      path="/dashboard"
-                      element={<Navigate to="/admin/dashboard" replace />}
-                    />
-                    <Route
-                      path="/rentals"
-                      element={<Navigate to="/admin/rentals" replace />}
-                    />
-                    
-                    {/* 404 Handler */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                  </Routes>
-                </Box>
-              </Router>
+              <FavoritesProvider>
+                <Router>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/home" element={<HomePage />} />
+                      <Route path="/products" element={<ProductsPage />} />
+                      <Route path="/products/:id" element={<ProductDetailPage />} />
+                      
+                      {/* Authentication Routes */}
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                      <Route path="/reset-password" element={<ResetPasswordPage />} />
+                      <Route path="/verify-email" element={<VerifyEmailPage />} />
+                      
+                      {/* Customer Routes */}
+                      <Route path="/customer" element={<Navigate to="/customer/dashboard" replace />} />
+                      <Route
+                        path="/customer/dashboard"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerDashboard />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/customer/rentals"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerRentals />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/customer/profile"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerProfile />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/customer/deliveries"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerDeliveries />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/customer/invoices"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerInvoices />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/customer/payments"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerPayments />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/customer/notifications"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <CustomerNotifications />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      
+                      {/* Admin Routes */}
+                      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                      <Route
+                        path="/admin/dashboard"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminDashboard />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/users"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminUsers />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/rentals"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminRentals />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/deliveries"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminDeliveries />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/products"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminProducts />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/rental-products"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminRentalProducts />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/categories"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminCategories />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/reports"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminReports />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/admin/settings"
+                        element={
+                          <RoleGuard allowedRoles={['ADMIN']}>
+                            <SidebarProvider>
+                              <AdminLayout>
+                                <AdminSettings />
+                              </AdminLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      
+                      {/* Shared Routes */}
+                      <Route
+                        path="/cart"
+                        element={
+                          <AuthGuard>
+                            <Navbar />
+                            <CartPage />
+                          </AuthGuard>
+                        }
+                      />
+                      <Route
+                        path="/checkout"
+                        element={
+                          <AuthGuard>
+                            <Navbar />
+                            <CheckoutPage />
+                          </AuthGuard>
+                        }
+                      />
+                      
+                      {/* Legacy Routes - Redirect to appropriate dashboard */}
+                      <Route
+                        path="/dashboard"
+                        element={<Navigate to="/admin/dashboard" replace />}
+                      />
+                      
+                      {/* 404 Handler */}
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </Box>
+                </Router>
+              </FavoritesProvider>
             </CartProvider>
           </AuthProvider>
         </LocalizationProvider>
