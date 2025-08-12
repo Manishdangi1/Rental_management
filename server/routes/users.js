@@ -114,4 +114,77 @@ router.get('/:id', [
   }
 });
 
+// Create new user (Admin only)
+router.post('/', [
+  authenticateToken,
+  requireRole(['ADMIN']),
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 }),
+  body('firstName').isString().notEmpty(),
+  body('lastName').isString().notEmpty(),
+  body('phone').optional().isString(),
+  body('role').isIn(['CUSTOMER', 'STAFF', 'ADMIN'])
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    
+    const { email, password, firstName, lastName, phone, role } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+    
+    // Hash password
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        phone: phone || null,
+        role,
+        isActive: true,
+        emailVerified: false
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+        createdAt: true,
+        lastLogin: true
+      }
+    });
+    
+    res.status(201).json({ 
+      message: 'User created successfully',
+      user: {
+        ...user,
+        totalRentals: 0,
+        totalInvoices: 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
 module.exports = router; 

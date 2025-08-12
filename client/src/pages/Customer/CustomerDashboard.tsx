@@ -39,7 +39,8 @@ import {
   Delete,
   Edit,
   Favorite,
-  FavoriteBorder
+  FavoriteBorder,
+  Clear
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -106,16 +107,50 @@ const CustomerDashboard: React.FC = () => {
   console.log('CustomerDashboard: Favorites context loaded:', favoriteItems);
 
   // Get unique categories (with safety checks)
-  const categories = ['all', ...Array.from(new Set(Array.isArray(products) ? products.map(p => p?.category?.name || p?.categoryId).filter(Boolean) : []))];
+  const categories = ['all', ...Array.from(new Set(Array.isArray(products) ? products.map(p => {
+    // Handle different category data structures
+    if (p?.category?.name) return p.category.name;
+    if (p?.category) return p.category;
+    if (p?.categoryId) return p.categoryId;
+    return null;
+  }).filter(Boolean) : []))];
 
   // Filter products based on search and category (with safety checks)
   const filteredProducts = Array.isArray(products) ? products.filter((product: any) => {
     if (!product || !product.name || !product.description) return false;
+    
+    // Search filtering
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    
+    // Category filtering - handle different category data structures
+    let productCategory = null;
+    if (product.category?.name) productCategory = product.category.name;
+    else if (product.category) productCategory = product.category;
+    else if (product.categoryId) productCategory = product.categoryId;
+    
+    const matchesCategory = selectedCategory === 'all' || productCategory === selectedCategory;
+    
+    console.log('Filtering product:', {
+      name: product.name,
+      productCategory,
+      selectedCategory,
+      matchesCategory,
+      matchesSearch
+    });
+    
     return matchesSearch && matchesCategory;
   }) : [];
+
+  // Debug effect for category changes
+  useEffect(() => {
+    console.log('Category selection changed:', {
+      selectedCategory,
+      categories,
+      productsCount: products.length,
+      filteredCount: filteredProducts.length
+    });
+  }, [selectedCategory, categories, products.length, filteredProducts.length]);
 
   // Cart handlers
   const handleCartClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -142,7 +177,9 @@ const CustomerDashboard: React.FC = () => {
 
   // Tab change handler
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    console.log('Tab change requested:', { currentTab: activeTab, newTab: newValue });
     setActiveTab(newValue);
+    console.log('Tab changed to:', newValue);
   };
 
   // Fetch products from backend
@@ -345,102 +382,290 @@ const CustomerDashboard: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeTab} onChange={handleTabChange} aria-label="dashboard tabs" sx={{ mb: 3 }}>
-          <Tab label="Dashboard" />
-          <Tab label="Products" />
-          <Tab label="Favorites" />
-          <Tab label="Rentals" />
+      {/* Enhanced Tabs */}
+      <Paper sx={{ 
+        mb: 4, 
+        borderRadius: 2,
+        bgcolor: 'primary.50',
+        border: '1px solid',
+        borderColor: 'primary.100'
+      }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={handleTabChange} 
+          aria-label="dashboard tabs" 
+          sx={{ 
+            px: 2,
+            '& .MuiTab-root': {
+              minHeight: 64,
+              fontSize: '1rem',
+              fontWeight: 600,
+              textTransform: 'none',
+              color: 'text.secondary',
+              transition: 'all 0.3s ease',
+              '&.Mui-selected': {
+                color: 'primary.main',
+                fontWeight: 700,
+                transform: 'scale(1.05)',
+              },
+              '&:hover': {
+                color: 'primary.main',
+                transform: 'scale(1.02)',
+              },
+            },
+            '& .MuiTabs-indicator': {
+              height: 6,
+              borderRadius: '3px 3px 0 0',
+              backgroundColor: 'primary.main',
+              boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+            },
+          }}
+          variant="fullWidth"
+        >
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <ShoppingCart sx={{ fontSize: 20 }} />
+                <span>Dashboard</span>
+              </Box>
+            } 
+          />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <Add sx={{ fontSize: 20 }} />
+                <span>Products</span>
+              </Box>
+            } 
+          />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <Favorite sx={{ fontSize: 20 }} />
+                <span>Favorites</span>
+              </Box>
+            } 
+          />
+          <Tab 
+            label={
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                <Receipt sx={{ fontSize: 20 }} />
+                <span>Rentals</span>
+              </Box>
+            } 
+          />
         </Tabs>
-      </Box>
+      </Paper>
 
       {/* Tab Content */}
-      {activeTab === 0 && (
+      <Box sx={{ minHeight: '400px' }}>
+        {/* Debug Info */}
+        <Box sx={{ mb: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1, fontSize: '0.875rem' }}>
+          <Typography variant="body2" color="text.secondary">
+            Current Active Tab: {activeTab} | 
+            Tab Names: [Dashboard, Products, Favorites, Rentals]
+          </Typography>
+        </Box>
+        
+        {activeTab === 0 && (
         <>
-          {/* Stats Cards */}
+          {/* Enhanced Stats Cards */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-                      <ShoppingCart />
-                    </Avatar>
+              <Card sx={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme.shadows[8],
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }
+              }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4">{stats.totalRentals}</Typography>
-                      <Typography variant="body2" color="text.secondary">Total Rentals</Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        {stats.totalRentals}
+                      </Typography>
+                      <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                        Total Rentals
+                      </Typography>
                     </Box>
+                    <Avatar sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      width: 56, 
+                      height: 56,
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <ShoppingCart sx={{ fontSize: 28, color: 'white' }} />
+                    </Avatar>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
-                      <LocalShipping />
-                    </Avatar>
+              <Card sx={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                color: 'white',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme.shadows[8],
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }
+              }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4">{stats.activeRentals}</Typography>
-                      <Typography variant="body2" color="text.secondary">Active Rentals</Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        {stats.activeRentals}
+                      </Typography>
+                      <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                        Active Rentals
+                      </Typography>
                     </Box>
+                    <Avatar sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      width: 56, 
+                      height: 56,
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <LocalShipping sx={{ fontSize: 28, color: 'white' }} />
+                    </Avatar>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
-                      <AttachMoney />
-                    </Avatar>
+              <Card sx={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                color: 'white',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme.shadows[8],
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }
+              }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4">${stats.totalSpent}</Typography>
-                      <Typography variant="body2" color="text.secondary">Total Spent</Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        ${stats.totalSpent}
+                      </Typography>
+                      <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                        Total Spent
+                      </Typography>
                     </Box>
+                    <Avatar sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      width: 56, 
+                      height: 56,
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <AttachMoney sx={{ fontSize: 28, color: 'white' }} />
+                    </Avatar>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <Card>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
-                      <CalendarToday />
-                    </Avatar>
+              <Card sx={{ 
+                height: '100%',
+                background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                color: 'white',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: theme.shadows[8],
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }
+              }}>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box>
-                      <Typography variant="h4">{stats.upcomingDeliveries}</Typography>
-                      <Typography variant="body2" color="text.secondary">Upcoming Deliveries</Typography>
+                      <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        {stats.upcomingDeliveries}
+                      </Typography>
+                      <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                        Upcoming Deliveries
+                      </Typography>
                     </Box>
+                    <Avatar sx={{ 
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      width: 56, 
+                      height: 56,
+                      backdropFilter: 'blur(10px)'
+                    }}>
+                      <CalendarToday sx={{ fontSize: 20, color: 'white' }} />
+                    </Avatar>
                   </Box>
                 </CardContent>
               </Card>
             </Grid>
           </Grid>
 
-          {/* Quick Actions */}
+          {/* Enhanced Quick Actions */}
           <Box sx={{ mb: 4 }}>
-            <Typography variant="h5" gutterBottom>Quick Actions</Typography>
-            <Grid container spacing={2}>
+            <Typography variant="h5" gutterBottom sx={{ 
+              fontWeight: 600, 
+              color: 'text.primary',
+              mb: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <Add sx={{ color: 'primary.main' }} />
+              Quick Actions
+            </Typography>
+            <Grid container spacing={3}>
               {quickActions.map((action) => (
                 <Grid item xs={12} sm={6} md={3} key={action.title}>
                   <Card 
                     sx={{ 
                       cursor: 'pointer', 
-                      '&:hover': { boxShadow: 4 },
-                      transition: 'box-shadow 0.2s'
+                      height: '100%',
+                      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                      border: '2px solid rgba(102, 126, 234, 0.2)',
+                      '&:hover': { 
+                        transform: 'translateY(-6px)',
+                        boxShadow: theme.shadows[12],
+                        borderColor: 'primary.main',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                      },
+                      transition: 'all 0.2s ease-in-out'
                     }}
                     onClick={() => navigate(action.path)}
                   >
-                    <CardContent sx={{ textAlign: 'center' }}>
-                      <Avatar sx={{ bgcolor: `${action.color}.main`, mx: 'auto', mb: 2 }}>
+                    <CardContent sx={{ 
+                      textAlign: 'center', 
+                      p: 3,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      height: '100%',
+                      justifyContent: 'center'
+                    }}>
+                      <Avatar sx={{ 
+                        bgcolor: `${action.color}.main`, 
+                        mx: 'auto', 
+                        mb: 2,
+                        width: 64,
+                        height: 64,
+                        boxShadow: theme.shadows[4]
+                      }}>
                         {action.icon}
                       </Avatar>
-                      <Typography variant="subtitle1">{action.title}</Typography>
+                      <Typography variant="h6" sx={{ 
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        mb: 1
+                      }}>
+                        {action.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Click to {action.title.toLowerCase()}
+                      </Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -702,7 +927,10 @@ const CustomerDashboard: React.FC = () => {
                       <Chip
                         key={category}
                         label={category === 'all' ? 'All Categories' : category}
-                        onClick={() => setSelectedCategory(category)}
+                        onClick={() => {
+                          console.log('Category clicked:', category);
+                          setSelectedCategory(category);
+                        }}
                         color={selectedCategory === category ? 'primary' : 'default'}
                         variant={selectedCategory === category ? 'filled' : 'outlined'}
                         clickable
@@ -711,6 +939,32 @@ const CustomerDashboard: React.FC = () => {
                   </Box>
                 </Grid>
               </Grid>
+              
+              {/* Debug Info for Categories */}
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, fontSize: '0.875rem' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <strong>Debug Info:</strong> Selected Category: "{selectedCategory}" | 
+                  Available Categories: [{categories.join(', ')}] | 
+                  Total Products: {products.length} | 
+                  Filtered Products: {filteredProducts.length}
+                </Typography>
+                
+                {/* Clear Filters Button */}
+                {(selectedCategory !== 'all' || searchTerm) && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setSearchTerm('');
+                      console.log('Filters cleared');
+                    }}
+                    startIcon={<Clear />}
+                  >
+                    Clear All Filters
+                  </Button>
+                )}
+              </Box>
             </Box>
 
             {/* Products Grid */}
@@ -746,9 +1000,21 @@ const CustomerDashboard: React.FC = () => {
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   No products found
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Try adjusting your search or category filter
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Current filters: {selectedCategory !== 'all' ? `Category: ${selectedCategory}` : 'All Categories'} 
+                  {searchTerm && ` | Search: "${searchTerm}"`}
                 </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSearchTerm('');
+                    console.log('Filters cleared from no results');
+                  }}
+                  startIcon={<Clear />}
+                >
+                  Clear All Filters
+                </Button>
               </Box>
             )}
           </Box>
@@ -816,7 +1082,8 @@ const CustomerDashboard: React.FC = () => {
           <ShoppingCartComponent />
         )}
       </Box>
-    );
+    </Box>
+  );
 };
 
 export default CustomerDashboard; 

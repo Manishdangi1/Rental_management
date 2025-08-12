@@ -3,7 +3,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Button,
   IconButton,
   Drawer,
   List,
@@ -14,7 +13,6 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  Badge,
   useTheme,
   useMediaQuery,
   Divider
@@ -31,7 +29,6 @@ import {
   Notifications,
   Person,
   Logout,
-  Home,
   LocalShipping,
   Receipt,
   Payment
@@ -116,8 +113,9 @@ const AdminNavbar: React.FC = () => {
   }
 
   const drawer = (
-    <Box>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Fixed Header */}
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
         <Typography variant="h6" color="primary">
           Admin Portal
         </Typography>
@@ -128,33 +126,55 @@ const AdminNavbar: React.FC = () => {
           Role: {user?.role}
         </Typography>
       </Box>
-      <List>
-        {menuItems.map((section, sectionIndex) => (
-          <Box key={sectionIndex}>
-            <ListItem sx={{ py: 1 }}>
-              <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 'bold' }}>
-                {section.section}
-              </Typography>
-            </ListItem>
-            {section.items.map((item) => (
-              <ListItem
-                button
-                key={item.text}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileOpen(false);
-                }}
-                selected={location.pathname === item.path}
-                sx={{ pl: 4 }}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.text} />
+      
+      {/* Scrollable Content */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto',
+        '&::-webkit-scrollbar': {
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: 'transparent',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: 'rgba(0, 0, 0, 0.2)',
+          borderRadius: '3px',
+          '&:hover': {
+            background: 'rgba(0, 0, 0, 0.3)',
+          },
+        },
+        scrollbarWidth: 'thin',
+        scrollbarColor: 'rgba(0, 0, 0, 0.2) transparent',
+      }}>
+        <List>
+          {menuItems.map((section, sectionIndex) => (
+            <Box key={sectionIndex}>
+              <ListItem sx={{ py: 1 }}>
+                <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 'bold' }}>
+                  {section.section}
+                </Typography>
               </ListItem>
-            ))}
-            {sectionIndex < menuItems.length - 1 && <Divider sx={{ my: 1 }} />}
-          </Box>
-        ))}
-      </List>
+              {section.items.map((item) => (
+                <ListItem
+                  button
+                  key={item.text}
+                  onClick={() => {
+                    navigate(item.path);
+                    setMobileOpen(false);
+                  }}
+                  selected={location.pathname === item.path}
+                  sx={{ pl: 4 }}
+                >
+                  <ListItemIcon>{item.icon}</ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItem>
+              ))}
+              {sectionIndex < menuItems.length - 1 && <Divider sx={{ my: 1 }} />}
+            </Box>
+          ))}
+        </List>
+      </Box>
     </Box>
   );
 
@@ -177,23 +197,6 @@ const AdminNavbar: React.FC = () => {
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              color="inherit"
-              startIcon={<Home />}
-              onClick={() => navigate('/')}
-            >
-              Public Site
-            </Button>
-
-            <IconButton
-              color="inherit"
-              onClick={() => navigate('/admin/notifications')}
-            >
-              <Badge badgeContent={0} color="error">
-                <Notifications />
-              </Badge>
-            </IconButton>
-
             <IconButton
               onClick={handleProfileMenuOpen}
               sx={{ ml: 1 }}
@@ -236,7 +239,11 @@ const AdminNavbar: React.FC = () => {
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 280 },
+            '& .MuiDrawer-paper': { 
+              boxSizing: 'border-box', 
+              width: 280,
+              overflow: 'visible'
+            },
           }}
         >
           {drawer}
@@ -256,7 +263,7 @@ const AdminNavbar: React.FC = () => {
               height: 'calc(100% - 64px)',
               borderRight: sidebarOpen ? '1px solid' : 'none',
               borderColor: 'divider',
-              overflow: 'hidden',
+              overflow: 'visible',
               transition: theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.enteringScreen,

@@ -99,7 +99,9 @@ const AdminDeliveries: React.FC = () => {
   const navigate = useNavigate();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -108,6 +110,17 @@ const AdminDeliveries: React.FC = () => {
   const [selectedDeliveries, setSelectedDeliveries] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(10);
+  const [createDeliveryDialog, setCreateDeliveryDialog] = useState(false);
+  const [rentals, setRentals] = useState<any[]>([]);
+  const [createDeliveryForm, setCreateDeliveryForm] = useState({
+    rentalId: '',
+    type: 'PICKUP' as 'PICKUP' | 'RETURN',
+    scheduledAt: '',
+    address: '',
+    contactName: '',
+    contactPhone: '',
+    notes: ''
+  });
 
   // Fetch deliveries data
   const fetchDeliveries = async () => {
@@ -129,7 +142,13 @@ const AdminDeliveries: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setDeliveries(data.deliveries || []);
+        if (data.deliveries && Array.isArray(data.deliveries)) {
+          setDeliveries(data.deliveries);
+        } else {
+          console.error('Invalid deliveries data format:', data);
+          setDeliveries([]);
+          setError('Invalid data format received from server.');
+        }
       } else {
         console.error('Failed to fetch deliveries:', response.status, response.statusText);
         setError('Failed to fetch deliveries. Please try again.');
@@ -142,8 +161,39 @@ const AdminDeliveries: React.FC = () => {
     }
   };
 
+  // Fetch rentals for delivery creation
+  const fetchRentals = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      console.log('Fetching rentals for delivery creation...');
+      const response = await fetch('/api/admin/rentals', { 
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Rentals fetched:', data);
+        if (data.rentals && Array.isArray(data.rentals)) {
+          setRentals(data.rentals);
+        } else {
+          console.error('Invalid rentals data format:', data);
+          setRentals([]);
+        }
+      } else {
+        console.error('Failed to fetch rentals:', response.status, response.statusText);
+        setRentals([]);
+      }
+    } catch (error) {
+      console.error('Error fetching rentals:', error);
+      setRentals([]);
+    }
+  };
+
   useEffect(() => {
     fetchDeliveries();
+    fetchRentals();
   }, []);
 
   // Filter deliveries based on search and filters
@@ -151,10 +201,13 @@ const AdminDeliveries: React.FC = () => {
     const customerName = delivery.rental?.customer ? 
       `${delivery.rental.customer.firstName || ''} ${delivery.rental.customer.lastName || ''}`.trim() : '';
     
+    const orderNumber = delivery.rental?.orderNumber || '';
+    const address = delivery.address || '';
+    
     const matchesSearch = 
-      delivery.rental?.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delivery.address?.toLowerCase().includes(searchTerm.toLowerCase());
+      address.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || delivery.status === statusFilter;
     const matchesType = typeFilter === 'all' || delivery.type === typeFilter;
@@ -168,31 +221,126 @@ const AdminDeliveries: React.FC = () => {
     page * rowsPerPage
   );
 
-  // Handle status update
-  const handleStatusUpdate = async (deliveryId: string, newStatus: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
 
-      const response = await fetch(`/api/admin/deliveries/${deliveryId}/status`, {
-        method: 'PATCH',
+
+  // Handle create delivery
+  const handleCreateDelivery = async () => {
+    try {
+      console.log('Form validation - rentalId:', createDeliveryForm.rentalId);
+      console.log('Form validation - scheduledAt:', createDeliveryForm.scheduledAt);
+      console.log('Form validation - address:', createDeliveryForm.address);
+      
+      // Validate form
+      if (!createDeliveryForm.rentalId) {
+        setError('Please select a rental order');
+        return;
+      }
+      
+      if (!createDeliveryForm.scheduledAt) {
+        setError('Please select a scheduled date and time');
+        return;
+      }
+      
+      if (!createDeliveryForm.address || createDeliveryForm.address.trim() === '') {
+        setError('Please enter a delivery address');
+        return;
+      }
+      
+      // Validate datetime format
+      const scheduledDate = new Date(createDeliveryForm.scheduledAt);
+      if (isNaN(scheduledDate.getTime())) {
+        setError('Please select a valid date and time');
+        return;
+      }
+      
+      // Check if the date is in the future
+      if (scheduledDate <= new Date()) {
+        setError('Scheduled date must be in the future');
+        return;
+      }
+
+      setCreateLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication token not found. Please login again.');
+        setCreateLoading(false);
+        return;
+      }
+
+      console.log('Submitting delivery form:', createDeliveryForm);
+      console.log('Formatted scheduled date:', scheduledDate.toISOString());
+      
+      // Prepare the data to send
+      const deliveryData = {
+        ...createDeliveryForm,
+        scheduledAt: scheduledDate.toISOString()
+      };
+      
+      console.log('Sending delivery data:', deliveryData);
+      
+      const response = await fetch('/api/deliveries', {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(deliveryData)
       });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
-        // Update local state
-        setDeliveries(prev => prev.map(d => 
-          d.id === deliveryId ? { ...d, status: newStatus as any } : d
-        ));
+        const responseData = await response.json();
+        console.log('Delivery created successfully:', responseData);
+        
+        // Reset form and close dialog
+        setCreateDeliveryForm({
+          rentalId: '',
+          type: 'PICKUP',
+          scheduledAt: '',
+          address: '',
+          contactName: '',
+          contactPhone: '',
+          notes: ''
+        });
+        setCreateDeliveryDialog(false);
+        
+        // Refresh deliveries list
+        fetchDeliveries();
+        
+        // Show success message
+        setError(null);
+        setSuccessMessage('Delivery scheduled successfully!');
+        setTimeout(() => setSuccessMessage(null), 3000); // Auto-hide after 3 seconds
+        console.log('Delivery scheduled successfully');
+      } else {
+        let errorMessage = `Failed to create delivery. Status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          console.error('Error response:', errorData);
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            errorMessage = errorData.errors.map((err: any) => err.msg).join(', ');
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.error('Could not parse error response:', parseError);
+        }
+        setError(errorMessage);
       }
-    } catch (error) {
-      console.error('Error updating delivery status:', error);
-    }
-  };
+        } catch (error) {
+        console.error('Error creating delivery:', error);
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          setError('Network error. Please check if the server is running and try again.');
+        } else {
+          setError('Failed to create delivery. Please try again.');
+        }
+      } finally {
+        setCreateLoading(false);
+      }
+    };
 
   // Handle bulk actions
   const handleBulkAction = async (action: string) => {
@@ -202,7 +350,7 @@ const AdminDeliveries: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('/api/admin/deliveries/bulk', {
+      const response = await fetch('/api/deliveries/bulk', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -271,6 +419,18 @@ const AdminDeliveries: React.FC = () => {
     );
   }
 
+  // Safety check for deliveries data
+  if (!Array.isArray(deliveries)) {
+    console.error('Deliveries is not an array:', deliveries);
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Error loading deliveries data. Please refresh the page.
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {/* Header */}
@@ -279,7 +439,21 @@ const AdminDeliveries: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={() => navigate('/admin/rentals')}
+          onClick={() => {
+            setCreateDeliveryDialog(true);
+            setError(null);
+            setSuccessMessage(null);
+            // Reset form to initial state
+            setCreateDeliveryForm({
+              rentalId: '',
+              type: 'PICKUP',
+              scheduledAt: '',
+              address: '',
+              contactName: '',
+              contactPhone: '',
+              notes: ''
+            });
+          }}
         >
           Schedule New Delivery
         </Button>
@@ -289,6 +463,13 @@ const AdminDeliveries: React.FC = () => {
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
+        </Alert>
+      )}
+
+      {/* Success Display */}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
         </Alert>
       )}
 
@@ -404,7 +585,8 @@ const AdminDeliveries: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {paginatedDeliveries.map((delivery) => (
+                {paginatedDeliveries.length > 0 ? (
+                  paginatedDeliveries.map((delivery) => (
                   <TableRow key={delivery.id}>
                     <TableCell padding="checkbox">
                       <Checkbox
@@ -468,34 +650,156 @@ const AdminDeliveries: React.FC = () => {
                             <Visibility />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Update Status">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleStatusUpdate(delivery.id, 'IN_TRANSIT')}
-                            disabled={delivery.status === 'COMPLETED'}
-                          >
-                            <LocalShipping />
-                          </IconButton>
-                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">
+                      <Typography variant="body2" color="text.secondary">
+                        No deliveries found
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
 
           {/* Pagination */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-            <Pagination
-              count={Math.ceil(filteredDeliveries.length / rowsPerPage)}
-              page={page}
-              onChange={(_, newPage) => setPage(newPage)}
-              color="primary"
-            />
-          </Box>
+          {filteredDeliveries.length > 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <Pagination
+                count={Math.ceil(filteredDeliveries.length / rowsPerPage)}
+                page={page}
+                onChange={(_, newPage) => setPage(newPage)}
+                color="primary"
+              />
+            </Box>
+          )}
         </CardContent>
       </Card>
+
+      {/* Create New Delivery Dialog */}
+      <Dialog open={createDeliveryDialog} onClose={() => setCreateDeliveryDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Schedule New Delivery
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={3} sx={{ pt: 2 }}>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Rental Order</InputLabel>
+                <Select
+                  value={createDeliveryForm.rentalId}
+                  onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, rentalId: e.target.value }))}
+                  label="Rental Order"
+                  required
+                >
+                  <MenuItem value="">Select a rental order</MenuItem>
+                  {Array.isArray(rentals) && rentals.length > 0 ? (
+                    rentals.map((rental) => (
+                      <MenuItem key={rental.id} value={rental.id}>
+                        {rental.orderNumber || 'No Order Number'} - {rental.customer?.firstName || 'Unknown'} {rental.customer?.lastName || 'Customer'}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem value="" disabled>
+                      No rental orders available
+                    </MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Delivery Type</InputLabel>
+                <Select
+                  value={createDeliveryForm.type}
+                  onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, type: e.target.value as 'PICKUP' | 'RETURN' }))}
+                  label="Delivery Type"
+                  required
+                >
+                  <MenuItem value="PICKUP">Pickup</MenuItem>
+                  <MenuItem value="RETURN">Return</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Scheduled Date & Time"
+                type="datetime-local"
+                value={createDeliveryForm.scheduledAt}
+                onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, scheduledAt: e.target.value }))}
+                required
+                InputLabelProps={{ shrink: true }}
+                helperText="Select date and time for delivery"
+                error={!createDeliveryForm.scheduledAt}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Address"
+                value={createDeliveryForm.address}
+                onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, address: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                required
+                multiline
+                rows={2}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Contact Name"
+                value={createDeliveryForm.contactName}
+                onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, contactName: e.target.value }))}
+                placeholder="Person to contact at location"
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Contact Phone"
+                value={createDeliveryForm.contactPhone}
+                onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                placeholder="Contact phone number"
+                fullWidth
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Notes"
+                value={createDeliveryForm.notes}
+                onChange={(e) => setCreateDeliveryForm(prev => ({ ...prev, notes: e.target.value }))}
+                multiline
+                rows={3}
+                placeholder="Additional delivery instructions or notes"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateDeliveryDialog(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={handleCreateDelivery}
+            disabled={!createDeliveryForm.rentalId || !createDeliveryForm.scheduledAt || !createDeliveryForm.address.trim() || createLoading}
+            startIcon={createLoading ? <CircularProgress size={20} /> : null}
+          >
+            {createLoading ? 'Scheduling...' : 'Schedule Delivery'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delivery Details Dialog */}
       <Dialog
@@ -508,7 +812,7 @@ const AdminDeliveries: React.FC = () => {
           Delivery Details - {selectedDelivery?.rental?.orderNumber || 'Unknown Order'}
         </DialogTitle>
         <DialogContent>
-          {selectedDelivery && (
+          {selectedDelivery && selectedDelivery.rental ? (
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="h6" gutterBottom>Delivery Information</Typography>
@@ -606,19 +910,28 @@ const AdminDeliveries: React.FC = () => {
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>Rental Items</Typography>
                 <List>
-                  {selectedDelivery.rental.items.map((item, index) => (
-                    <ListItem key={index}>
-                      <ListItemAvatar>
-                        <Avatar>
-                          <Inventory />
-                        </Avatar>
-                      </ListItemAvatar>
+                  {selectedDelivery.rental?.items && selectedDelivery.rental.items.length > 0 ? (
+                    selectedDelivery.rental.items.map((item, index) => (
+                      <ListItem key={index}>
+                        <ListItemAvatar>
+                          <Avatar>
+                            <Inventory />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={item.productName || 'Unknown Product'}
+                          secondary={`Quantity: ${item.quantity || 1}`}
+                        />
+                      </ListItem>
+                    ))
+                  ) : (
+                    <ListItem>
                       <ListItemText
-                        primary={item.productName}
-                        secondary={`Quantity: ${item.quantity}`}
+                        primary="No items found"
+                        secondary="No rental items available for this delivery"
                       />
                     </ListItem>
-                  ))}
+                  )}
                 </List>
               </Grid>
               {selectedDelivery.notes && (
@@ -630,6 +943,12 @@ const AdminDeliveries: React.FC = () => {
                 </Grid>
               )}
             </Grid>
+          ) : (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography variant="body1" color="text.secondary">
+                No rental information available for this delivery.
+              </Typography>
+            </Box>
           )}
         </DialogContent>
         <DialogActions>

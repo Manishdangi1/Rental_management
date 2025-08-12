@@ -10,6 +10,120 @@ const prisma = new PrismaClient();
 router.use(authenticateToken);
 router.use(requireRole(['CUSTOMER']));
 
+// Get customer stats
+router.get('/stats', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get total rentals count
+    const totalRentals = await prisma.rental.count({
+      where: { customerId: userId }
+    });
+    
+    // Get active rentals count (rentals that are confirmed, in progress, or picked up)
+    const activeRentals = await prisma.rental.count({
+      where: { 
+        customerId: userId,
+        status: { in: ['CONFIRMED', 'IN_PROGRESS', 'PICKED_UP'] }
+      }
+    });
+    
+    // Get total spent (from completed/returned rentals)
+    const totalSpent = await prisma.rental.aggregate({
+      where: { 
+        customerId: userId,
+        status: { in: ['COMPLETED', 'RETURNED'] }
+      },
+      _sum: { totalAmount: true }
+    });
+    
+    // Get upcoming deliveries count
+    const upcomingDeliveries = await prisma.delivery.count({
+      where: {
+        rental: {
+          customerId: userId
+        },
+        status: 'PENDING',
+        scheduledAt: {
+          gte: new Date()
+        }
+      }
+    });
+    
+    res.json({
+      totalRentals,
+      activeRentals,
+      totalSpent: totalSpent._sum.totalAmount || 0,
+      upcomingDeliveries
+    });
+  } catch (error) {
+    console.error('Error fetching customer stats:', error);
+    res.status(500).json({ error: 'Failed to fetch customer stats' });
+  }
+});
+
+// Get customer rentals
+router.get('/rentals', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { status, limit } = req.query;
+    
+    let whereClause = { customerId: userId };
+    
+    if (status && status !== 'all') {
+      if (status === 'ACTIVE') {
+        whereClause.status = { in: ['CONFIRMED', 'IN_PROGRESS', 'PICKED_UP'] };
+      } else if (status === 'COMPLETED') {
+        whereClause.status = 'COMPLETED';
+      } else if (status === 'PENDING') {
+        whereClause.status = 'PENDING';
+      } else if (status === 'CANCELLED') {
+        whereClause.status = 'CANCELLED';
+      }
+    }
+    
+    const rentals = await prisma.rental.findMany({
+      where: whereClause,
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      ...(limit && { take: parseInt(limit) })
+    });
+    
+    // Transform the data to match frontend expectations
+    const transformedRentals = rentals.map(rental => ({
+      id: rental.id,
+      orderNumber: rental.orderNumber,
+      status: rental.status,
+      totalAmount: rental.totalAmount,
+      startDate: rental.startDate.toISOString(),
+      endDate: rental.endDate.toISOString(),
+      items: rental.items.map(item => ({
+        productName: item.product?.name || 'Unknown Product',
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice
+      })),
+      customerName: rental.customerName,
+      pickupAddress: rental.pickupAddress,
+      returnAddress: rental.returnAddress,
+      notes: rental.notes,
+      createdAt: rental.createdAt.toISOString(),
+      updatedAt: rental.updatedAt.toISOString()
+    }));
+    
+    res.json({ rentals: transformedRentals });
+  } catch (error) {
+    console.error('Error fetching customer rentals:', error);
+    res.status(500).json({ error: 'Failed to fetch customer rentals' });
+  }
+});
+
 // Get customer deliveries
 router.get('/deliveries', async (req, res) => {
   try {

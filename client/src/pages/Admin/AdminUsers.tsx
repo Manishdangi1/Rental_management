@@ -67,7 +67,8 @@ interface User {
   createdAt: string;
   lastLogin?: string;
   totalRentals: number;
-  totalSpent: number;
+  totalInvoices: number;
+  totalSpent?: number; // Keep for backward compatibility
 }
 
 const AdminUsers: React.FC = () => {
@@ -90,6 +91,16 @@ const AdminUsers: React.FC = () => {
   const [userDetailDialogOpen, setUserDetailDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    role: 'CUSTOMER',
+    password: ''
+  });
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -136,7 +147,7 @@ const AdminUsers: React.FC = () => {
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.phone.includes(searchTerm)
+        (user.phone && user.phone.includes(searchTerm))
       );
     }
 
@@ -240,6 +251,40 @@ const AdminUsers: React.FC = () => {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUser.email || !newUser.firstName || !newUser.lastName || !newUser.password) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      setError(null);
+      
+      const response = await api.post('/admin/users', newUser);
+      
+      // Add new user to the list
+      setUsers([response.data.user, ...users]);
+      setFilteredUsers([response.data.user, ...filteredUsers]);
+      
+      // Reset form and close dialog
+      setNewUser({
+        email: '',
+        firstName: '',
+        lastName: '',
+        phone: '',
+        role: 'CUSTOMER',
+        password: ''
+      });
+      setCreateDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error creating user:', error);
+      setError(error.response?.data?.message || 'Failed to create user');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'ADMIN':
@@ -281,7 +326,7 @@ const AdminUsers: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<Add />}
-          onClick={() => navigate('/admin/users/new')}
+          onClick={() => setCreateDialogOpen(true)}
         >
           Add New User
         </Button>
@@ -443,7 +488,7 @@ const AdminUsers: React.FC = () => {
                     <TableCell>
                       <Box>
                         <Typography variant="body2">
-                          {user.phone}
+                          {user.phone || 'No phone'}
                         </Typography>
                         <Chip
                           label={user.emailVerified ? 'Verified' : 'Unverified'}
@@ -470,18 +515,18 @@ const AdminUsers: React.FC = () => {
                     <TableCell>
                       <Box>
                         <Typography variant="body2">
-                          {user.totalRentals} rentals
+                          {user.totalRentals || 0} rentals
                         </Typography>
                         {user.role === 'CUSTOMER' && (
                           <Typography variant="caption" color="text.secondary">
-                            ${user.totalSpent} spent
+                            {user.totalInvoices || 0} invoices
                           </Typography>
                         )}
                       </Box>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {user.createdAt}
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -692,7 +737,7 @@ const AdminUsers: React.FC = () => {
                     <Card variant="outlined">
                       <CardContent>
                         <Typography variant="h4" color="primary" gutterBottom>
-                          {selectedUser.totalRentals}
+                          {selectedUser.totalRentals || 0}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Total Rentals
@@ -700,15 +745,15 @@ const AdminUsers: React.FC = () => {
                       </CardContent>
                     </Card>
                   </Grid>
-                  {selectedUser.role === 'CUSTOMER' && (
+                                    {selectedUser.role === 'CUSTOMER' && (
                     <Grid item xs={12} sm={6}>
                       <Card variant="outlined">
                         <CardContent>
                           <Typography variant="h4" color="success" gutterBottom>
-                            ${selectedUser.totalSpent.toLocaleString()}
+                            {selectedUser.totalInvoices || 0}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Total Spent
+                            Total Invoices
                           </Typography>
                         </CardContent>
                       </Card>
@@ -734,6 +779,87 @@ const AdminUsers: React.FC = () => {
             startIcon={<Edit />}
           >
             Edit User
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New User</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={newUser.firstName}
+                  onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={newUser.lastName}
+                  onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone (Optional)"
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={newUser.role}
+                    label="Role"
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  >
+                    <MenuItem value="CUSTOMER">Customer</MenuItem>
+                    <MenuItem value="STAFF">Staff</MenuItem>
+                    <MenuItem value="ADMIN">Admin</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleCreateUser} 
+            variant="contained"
+            disabled={createLoading || !newUser.email || !newUser.firstName || !newUser.lastName || !newUser.password}
+          >
+            {createLoading ? 'Creating...' : 'Create User'}
           </Button>
         </DialogActions>
       </Dialog>

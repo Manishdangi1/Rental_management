@@ -32,7 +32,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Avatar
 } from '@mui/material';
 import {
   Search,
@@ -46,7 +47,8 @@ import {
   Favorite,
   Star,
   AccessTime,
-  LocationOn
+  LocationOn,
+  Add
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -98,6 +100,15 @@ const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Enhanced UI states
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [rentalDialogOpen, setRentalDialogOpen] = useState(false);
+  const [rentalQuantity, setRentalQuantity] = useState(1);
+  const [selectedRentalType, setSelectedRentalType] = useState<string>('DAILY');
+  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+  const [priceLoading, setPriceLoading] = useState(false);
+  
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -108,15 +119,6 @@ const ProductsPage: React.FC = () => {
   // Date selection for rental
   const [startDate, setStartDate] = useState<Date | null>(addDays(new Date(), 1));
   const [endDate, setEndDate] = useState<Date | null>(addDays(new Date(), 3));
-  
-  // UI states
-  const [showFilters, setShowFilters] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [rentalDialogOpen, setRentalDialogOpen] = useState(false);
-  const [rentalQuantity, setRentalQuantity] = useState(1);
-  const [selectedRentalType, setSelectedRentalType] = useState<string>('DAILY');
-  const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
-  const [priceLoading, setPriceLoading] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -166,7 +168,7 @@ const ProductsPage: React.FC = () => {
       const minPrice = Math.min(...prices);
       const maxPrice = Math.max(...prices);
       
-      return minPrice >= priceRange[0] && maxPrice <= priceRange[1];
+      return minPrice >= (priceRange?.[0] || 0) && maxPrice <= (priceRange?.[1] || 1000);
     });
 
     // Apply rental type filter
@@ -238,7 +240,7 @@ const ProductsPage: React.FC = () => {
       productId: selectedProduct.id,
       name: selectedProduct.name,
       sku: selectedProduct.sku,
-      image: selectedProduct.images[0],
+      image: selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images[0] : 'https://via.placeholder.com/300x200?text=No+Image',
       quantity: rentalQuantity,
       rentalType: selectedRentalType as 'HOURLY' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY',
       unitPrice: calculatedPrice / rentalQuantity,
@@ -256,13 +258,21 @@ const ProductsPage: React.FC = () => {
   };
 
   const getCategories = () => {
+    if (!products || products.length === 0) return [];
     const categories = products.map(p => p.category);
     return Array.from(new Set(categories.map(c => c.id))).map(id => 
       categories.find(c => c.id === id)!
     );
   };
 
+  const getCategoryName = (categoryId: string) => {
+    if (categoryId === 'all') return 'All Categories';
+    const category = getCategories().find(cat => cat.id === categoryId);
+    return category ? category.name : 'Unknown Category';
+  };
+
   const getRentalTypes = () => {
+    if (!products || products.length === 0) return [];
     const types = products.flatMap(p => p.pricelistItems.map(item => item.rentalType));
     return Array.from(new Set(types));
   };
@@ -293,12 +303,61 @@ const ProductsPage: React.FC = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h3" component="h1" gutterBottom>
+        {/* Breadcrumb Navigation */}
+        <Box sx={{ mb: 3 }}>
+          <Chip
+            icon={<LocationOn />}
+            label="Customer Portal"
+            variant="outlined"
+            color="primary"
+            sx={{ mr: 1 }}
+            component={Link}
+            to="/customer/dashboard"
+            clickable
+          />
+          <Chip
+            icon={<LocalOffer />}
+            label="Products"
+            variant="filled"
+            color="primary"
+          />
+        </Box>
+
+        {/* Enhanced Header */}
+        <Box sx={{ 
+          textAlign: 'center', 
+          mb: 4,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          p: 4,
+          borderRadius: 3,
+          boxShadow: theme.shadows[4],
+          position: 'relative'
+        }}>
+          <Button
+            variant="outlined"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: 16,
+              color: 'white',
+              borderColor: 'rgba(255,255,255,0.5)',
+              '&:hover': {
+                borderColor: 'white',
+                backgroundColor: 'rgba(255,255,255,0.1)'
+              }
+            }}
+            component={Link}
+            to="/customer/dashboard"
+            startIcon={<LocationOn />}
+          >
+            Back to Dashboard
+          </Button>
+          
+          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
             Rental Products
           </Typography>
-          <Typography variant="h6" color="text.secondary">
+          <Typography variant="h6" sx={{ opacity: 0.9 }}>
             Browse our wide selection of rental equipment and tools
           </Typography>
         </Box>
@@ -310,8 +369,15 @@ const ProductsPage: React.FC = () => {
           </Alert>
         )}
 
-        {/* Search and Filters */}
-        <Paper sx={{ p: 3, mb: 4 }}>
+        {/* Enhanced Search and Filters */}
+        <Paper sx={{ 
+          p: 3, 
+          mb: 4, 
+          borderRadius: 2,
+          bgcolor: 'primary.50',
+          border: '1px solid',
+          borderColor: 'primary.100'
+        }}>
           <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} md={4}>
               <TextField
@@ -368,8 +434,16 @@ const ProductsPage: React.FC = () => {
                 startIcon={<FilterList />}
                 fullWidth
                 onClick={() => setShowFilters(!showFilters)}
+                sx={{
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.dark',
+                    backgroundColor: 'primary.50'
+                  }
+                }}
               >
-                More Filters
+                {showFilters ? 'Hide Filters' : 'More Filters'}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
@@ -378,6 +452,12 @@ const ProductsPage: React.FC = () => {
                 startIcon={<CalendarToday />}
                 fullWidth
                 onClick={() => setShowFilters(!showFilters)}
+                sx={{
+                  background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #0d7a6e 0%, #2ddb6d 100%)'
+                  }
+                }}
               >
                 Select Dates
               </Button>
@@ -399,8 +479,8 @@ const ProductsPage: React.FC = () => {
                     valueLabelFormat={(value) => `$${value}`}
                   />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">${priceRange[0]}</Typography>
-                    <Typography variant="body2">${priceRange[1]}</Typography>
+                                            <Typography variant="body2">${priceRange?.[0] || 0}</Typography>
+                        <Typography variant="body2">${priceRange?.[1] || 1000}</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -428,19 +508,176 @@ const ProductsPage: React.FC = () => {
           )}
         </Paper>
 
-        {/* Results Count */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6">
-            {filteredProducts.length} products found
-          </Typography>
+        {/* Enhanced Results Count */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 3,
+          p: 2,
+          bgcolor: 'grey.50',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'grey.200'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              {filteredProducts.length} products found
+            </Typography>
+            <Chip 
+              label={categoryFilter !== 'all' ? `Category: ${getCategoryName(categoryFilter)}` : 'All Categories'}
+              color="primary"
+              variant="outlined"
+              size="small"
+            />
+          </Box>
           <Typography variant="body2" color="text.secondary">
             Showing rental products available for your selected dates
           </Typography>
         </Box>
 
+        {/* Summary Cards */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[8],
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {products.length}
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Total Products
+                    </Typography>
+                  </Box>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    width: 56, 
+                    height: 56,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <Add sx={{ fontSize: 28, color: 'white' }} />
+                  </Avatar>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+              color: 'white',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[8],
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {filteredProducts.length}
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Available Now
+                    </Typography>
+                  </Box>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    width: 56, 
+                    height: 56,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <LocalOffer sx={{ fontSize: 28, color: 'white' }} />
+                  </Avatar>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: 'white',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[8],
+                transition: 'all 0.3s cubic-bezier(0.4, 0.2, 1)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {getCategories().length}
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Categories
+                    </Typography>
+                  </Box>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    width: 56, 
+                    height: 56,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <FilterList sx={{ fontSize: 28, color: 'white' }} />
+                  </Avatar>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ 
+              height: '100%',
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              color: 'white',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: theme.shadows[8],
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+              }
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      {getRentalTypes().length}
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Rental Types
+                    </Typography>
+                  </Box>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    width: 56, 
+                    height: 56,
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <Schedule sx={{ fontSize: 28, color: 'white' }} />
+                  </Avatar>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+
         {/* Products Grid */}
         <Grid container spacing={3}>
-          {filteredProducts.map((product) => (
+          {filteredProducts && filteredProducts.length > 0 && filteredProducts.map((product) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
               <Card 
                 sx={{ 
@@ -458,7 +695,7 @@ const ProductsPage: React.FC = () => {
                 <CardMedia
                   component="img"
                   height="200"
-                  image={product.images[0] || 'https://via.placeholder.com/300x200?text=No+Image'}
+                  image={product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x200?text=No+Image'}
                   alt={product.name}
                   sx={{ objectFit: 'cover' }}
                 />
@@ -535,7 +772,7 @@ const ProductsPage: React.FC = () => {
                           From ${Math.min(...product.pricelistItems.map(item => item.price))}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          per {product.pricelistItems[0].rentalType.toLowerCase()}
+                          per {product.pricelistItems && product.pricelistItems.length > 0 ? product.pricelistItems[0].rentalType.toLowerCase() : 'day'}
                         </Typography>
                       </Box>
                     ) : (

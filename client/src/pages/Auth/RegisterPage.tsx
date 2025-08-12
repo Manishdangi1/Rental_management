@@ -9,8 +9,6 @@ import {
   Link,
   Paper,
   Alert,
-  Chip,
-  Stack,
   FormControlLabel,
   Switch,
   Divider,
@@ -19,17 +17,23 @@ import {
   FormControl,
   FormLabel,
   RadioGroup,
-  Radio
+  Radio,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
   Person,
-  AdminPanelSettings
+  AdminPanelSettings,
+  Email,
+  Lock
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 
 const RegisterPage: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -46,10 +50,13 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value, checked, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
   const handleRoleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,13 +155,14 @@ const RegisterPage: React.FC = () => {
               Sign up to start managing your rentals
             </Typography>
           </Box>
-          
+
+          {/* Error Alert */}
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
               {error}
             </Alert>
           )}
-          
+
           {/* Role Selection Section */}
           <Box sx={{ mb: 4 }}>
             <FormControl component="fieldset" fullWidth>
@@ -196,7 +204,7 @@ const RegisterPage: React.FC = () => {
                 : 'Create an account to access internal rental management system for administrative operations'}
             </Typography>
           </Box>
-          
+
           {/* Registration Form */}
           <Box component="form" onSubmit={handleSubmit}>
             {/* Name Fields */}
@@ -211,6 +219,13 @@ const RegisterPage: React.FC = () => {
                 autoFocus
                 value={formData.firstName}
                 onChange={handleChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Person color="action" />
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
@@ -239,6 +254,13 @@ const RegisterPage: React.FC = () => {
                 autoComplete="family-name"
                 value={formData.lastName}
                 onChange={handleChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Person color="action" />
+                    </InputAdornment>
+                  ),
+                }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderRadius: 2,
@@ -267,10 +289,19 @@ const RegisterPage: React.FC = () => {
               id="email"
               label="Email Address"
               name="email"
+              type="email"
               autoComplete="email"
               value={formData.email}
               onChange={handleChange}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Email color="action" />
+                  </InputAdornment>
+                ),
+              }}
               sx={{
+                mb: 2,
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
                   transition: 'all 0.2s ease-in-out',
@@ -303,12 +334,17 @@ const RegisterPage: React.FC = () => {
                 value={formData.password}
                 onChange={handleChange}
                 InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="action" />
+                    </InputAdornment>
+                  ),
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                         onClick={handleTogglePasswordVisibility}
                         edge="end"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                         sx={{
                           '&:hover': {
                             backgroundColor: 'primary.light',
@@ -352,6 +388,11 @@ const RegisterPage: React.FC = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock color="action" />
+                    </InputAdornment>
+                  ),
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
@@ -393,50 +434,48 @@ const RegisterPage: React.FC = () => {
             </Box>
             
             {/* Terms and Conditions Toggle */}
-            <Box sx={{ mt: 3, mb: 2 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    required
-                    color="primary"
-                    size="small"
+            <FormControlLabel
+              control={
+                <Switch
+                  required
+                  color="primary"
+                  sx={{
+                    '& .MuiSwitch-switchBase.Mui-checked': {
+                      color: 'primary.main',
+                    },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                      backgroundColor: 'primary.main',
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography variant="body2" color="text.secondary">
+                  I agree to the{' '}
+                  <Link
+                    href="#"
                     sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: 'primary.main',
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: 'primary.main',
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      '&:hover': {
+                        textDecoration: 'underline',
                       },
                     }}
-                  />
+                  >
+                    Terms and Conditions
+                  </Link>
+                </Typography>
+              }
+              sx={{ 
+                mb: 3,
+                alignItems: 'flex-start',
+                '& .MuiFormControlLabel-label': {
+                  fontSize: '0.875rem',
+                  lineHeight: 1.4,
                 }
-                label={
-                  <Typography variant="body2" color="text.secondary">
-                    I agree to the{' '}
-                    <Link
-                      href="#"
-                      sx={{
-                        color: 'primary.main',
-                        textDecoration: 'none',
-                        fontWeight: 600,
-                        '&:hover': {
-                          textDecoration: 'underline',
-                        },
-                      }}
-                    >
-                      Terms and Conditions
-                    </Link>
-                  </Typography>
-                }
-                sx={{ 
-                  alignItems: 'flex-start',
-                  '& .MuiFormControlLabel-label': {
-                    fontSize: '0.875rem',
-                    lineHeight: 1.4,
-                  }
-                }}
-              />
-            </Box>
+              }}
+            />
             
             {/* Submit Button */}
             <Button
@@ -444,13 +483,13 @@ const RegisterPage: React.FC = () => {
               fullWidth
               variant="contained"
               size="large"
-              sx={{ 
-                mt: 4, 
-                mb: 3,
+              disabled={loading}
+              sx={{
                 py: 1.5,
-                borderRadius: 2,
+                mb: 3,
                 fontSize: '1.1rem',
-                fontWeight: 600,
+                fontWeight: 'bold',
+                borderRadius: 2,
                 textTransform: 'none',
                 boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
                 '&:hover': {
@@ -459,39 +498,74 @@ const RegisterPage: React.FC = () => {
                 },
                 transition: 'all 0.2s ease-in-out'
               }}
-              disabled={loading}
             >
               {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
-            
-            {/* Divider */}
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                or
-              </Typography>
-            </Divider>
-            
-            {/* Links Section */}
-            <Box sx={{ textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary" component="span">
-                Already have an account?{' '}
-              </Typography>
-              <Link 
-                component={RouterLink} 
-                to="/login" 
-                variant="body2"
-                sx={{ 
-                  color: 'primary.main',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                Sign In
-              </Link>
-            </Box>
+          </Box>
+
+          {/* Links */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Link
+              component={RouterLink}
+              to="/login"
+              variant="body2"
+              color="primary"
+              sx={{ 
+                textDecoration: 'none', 
+                fontWeight: 600,
+                '&:hover': { 
+                  textDecoration: 'underline' 
+                } 
+              }}
+            >
+              Already have an account? Sign In
+            </Link>
+          </Box>
+
+          {/* Divider */}
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              or
+            </Typography>
+          </Divider>
+
+          {/* Sign In Section */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" component="span">
+              Already have an account?{' '}
+            </Typography>
+            <Button
+              component={RouterLink}
+              to="/login"
+              variant="outlined"
+              fullWidth
+              size="large"
+              sx={{ 
+                mt: 1,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 600,
+                '&:hover': {
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease-in-out'
+              }}
+            >
+              Sign In
+            </Button>
+          </Box>
+
+          {/* Demo Accounts */}
+          <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              <strong>Demo Accounts:</strong>
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+              <strong>Customer:</strong> customer1@example.com / password123
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block">
+              <strong>Admin:</strong> admin@rentpro.com / password123
+            </Typography>
           </Box>
         </Paper>
       </Container>

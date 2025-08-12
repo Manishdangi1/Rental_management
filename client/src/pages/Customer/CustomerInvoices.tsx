@@ -221,9 +221,153 @@ const CustomerInvoices: React.FC = () => {
   };
 
   const handleDownloadInvoice = (invoice: Invoice) => {
-    // In a real app, this would download the PDF
-    console.log('Downloading invoice:', invoice.invoiceNumber);
-    alert(`Downloading invoice ${invoice.invoiceNumber}`);
+    // Generate invoice content for download
+    const invoiceContent = generateInvoiceContent(invoice);
+    
+    // Create and download the file
+    const blob = new Blob([invoiceContent], { type: 'text/html;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `invoice_${invoice.invoiceNumber}_${new Date().toISOString().split('T')[0]}.html`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const generateInvoiceContent = (invoice: Invoice) => {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invoice ${invoice.invoiceNumber}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        .invoice-details { margin-bottom: 30px; }
+        .customer-details { margin-bottom: 30px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .items-table th { background-color: #f2f2f2; }
+        .total-section { text-align: right; font-size: 18px; }
+        .status { display: inline-block; padding: 5px 10px; border-radius: 3px; color: white; }
+        .status-DRAFT { background-color: #6c757d; }
+        .status-SENT { background-color: #007bff; }
+        .status-PAID { background-color: #28a745; }
+        .status-OVERDUE { background-color: #dc3545; }
+        .status-CANCELLED { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>INVOICE</h1>
+        <h2>${invoice.invoiceNumber}</h2>
+    </div>
+    
+    <div class="invoice-details">
+        <h3>Invoice Details</h3>
+        <p><strong>Order Number:</strong> ${invoice.orderNumber}</p>
+        <p><strong>Issue Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
+        <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+        <p><strong>Status:</strong> <span class="status status-${invoice.status}">${invoice.status}</span></p>
+    </div>
+    
+    <div class="customer-details">
+        <h3>Customer Information</h3>
+        <p><strong>Name:</strong> ${invoice.customer.name}</p>
+        <p><strong>Email:</strong> ${invoice.customer.email}</p>
+        <p><strong>Address:</strong> ${invoice.customer.address}</p>
+    </div>
+    
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${invoice.items.map(item => `
+                <tr>
+                    <td>${item.productName}</td>
+                    <td>${item.quantity}</td>
+                    <td>$${item.unitPrice.toFixed(2)}</td>
+                    <td>$${item.totalPrice.toFixed(2)}</td>
+                </tr>
+            `).join('')}
+        </tbody>
+    </table>
+    
+    <div class="total-section">
+        <p><strong>Subtotal:</strong> $${invoice.subtotal.toFixed(2)}</p>
+        <p><strong>Tax:</strong> $${invoice.tax.toFixed(2)}</p>
+        ${invoice.discount > 0 ? `<p><strong>Discount:</strong> -$${invoice.discount.toFixed(2)}</p>` : ''}
+        <p><strong>Total:</strong> $${invoice.total.toFixed(2)}</p>
+    </div>
+    
+    ${invoice.notes ? `<div style="margin-top: 30px;"><h3>Notes</h3><p>${invoice.notes}</p></div>` : ''}
+    ${invoice.terms ? `<div style="margin-top: 30px;"><h3>Terms</h3><p>${invoice.terms}</p></div>` : ''}
+</body>
+</html>`;
+  };
+
+  const handleExportAll = () => {
+    if (!invoices || invoices.length === 0) {
+      alert('No invoices to export');
+      return;
+    }
+    
+    // Create CSV content
+    const csvContent = generateCSVContent(invoices);
+    
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `invoices_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const generateCSVContent = (invoiceList: Invoice[]) => {
+    const headers = [
+      'Invoice Number',
+      'Order Number',
+      'Status',
+      'Issue Date',
+      'Due Date',
+      'Subtotal',
+      'Tax',
+      'Discount',
+      'Total',
+      'Payment Status'
+    ];
+    
+    const csvRows = [headers.join(',')];
+    
+    invoiceList.forEach(invoice => {
+      const row = [
+        invoice.invoiceNumber,
+        invoice.orderNumber,
+        invoice.status,
+        new Date(invoice.issueDate).toLocaleDateString(),
+        new Date(invoice.dueDate).toLocaleDateString(),
+        invoice.subtotal.toFixed(2),
+        invoice.tax.toFixed(2),
+        invoice.discount.toFixed(2),
+        invoice.total.toFixed(2),
+        invoice.paymentMethod || 'Not specified'
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    return csvRows.join('\n');
   };
 
   const handleMakePayment = (invoice: Invoice) => {
@@ -519,6 +663,8 @@ const CustomerInvoices: React.FC = () => {
                 variant="outlined"
                 startIcon={<Download />}
                 fullWidth
+                onClick={handleExportAll}
+                disabled={!invoices || invoices.length === 0}
               >
                 Export All
               </Button>

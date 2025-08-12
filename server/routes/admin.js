@@ -271,23 +271,23 @@ router.get('/dashboard-data', async (req, res) => {
 
     // Transform top products (simplified)
     console.log('Top products raw data:', JSON.stringify(topProducts, null, 2));
-    const transformedTopProducts = (topProducts || []).filter(item => item && item.productId).map(item => ({
-      id: item.productId,
-      name: `Product ${item.productId}`,
-      totalRentals: item._count?.productId || 0,
-      category: 'General',
-      averageRating: 4.5
+    const transformedTopProducts = (topProducts || []).filter(item => item && item.id).map(item => ({
+      id: item.id,
+      name: item.name || `Product ${item.id}`,
+      totalRentals: item.totalRentals || 0,
+      category: item.category || 'General',
+      averageRating: item.averageRating || 4.5
     }));
 
     // Transform top customers (simplified)
     console.log('Top customers raw data:', JSON.stringify(topCustomers, null, 2));
-    const transformedTopCustomers = (topCustomers || []).filter(item => item && item.customerId).map(item => ({
-      id: item.customerId,
-      name: `Customer ${item.customerId}`,
-      email: 'customer@example.com',
-      totalRentals: item._count?.customerId || 0,
-      totalSpent: item._sum?.totalAmount || 0,
-      lastRentalDate: new Date().toISOString()
+    const transformedTopCustomers = (topCustomers || []).filter(item => item && item.id).map(item => ({
+      id: item.id,
+      name: item.name || `Customer ${item.id}`,
+      email: item.email || 'customer@example.com',
+      totalRentals: item.totalRentals || 0,
+      totalSpent: item.totalSpent || 0,
+      lastRentalDate: item.lastRentalDate || new Date().toISOString()
     }));
 
     // Transform overdue rentals
@@ -490,8 +490,6 @@ router.get('/rentals', async (req, res) => {
       totalAmount: rental.totalAmount,
       startDate: rental.startDate,
       endDate: rental.endDate,
-      pickupDate: rental.pickupDate,
-      returnDate: rental.returnDate,
       items: rental.items.map(item => ({
         productName: item.product.name,
         quantity: item.quantity,
@@ -528,6 +526,15 @@ router.get('/deliveries', async (req, res) => {
                 firstName: true,
                 lastName: true
               }
+            },
+            items: {
+              include: {
+                product: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
             }
           }
         }
@@ -542,13 +549,14 @@ router.get('/deliveries', async (req, res) => {
       id: delivery.id,
       rentalId: delivery.rentalId,
       customerName: delivery.rental?.customer ? `${delivery.rental.customer.firstName || 'Unknown'} ${delivery.rental.customer.lastName || 'Customer'}` : 'Unknown Customer',
-      productName: 'Product', // Simplified since product is not directly related to delivery
-      quantity: 1, // Default quantity
+      productName: delivery.rental?.items?.[0]?.product?.name || 'Product',
+      quantity: delivery.rental?.items?.[0]?.quantity || 1,
       status: delivery.status,
       scheduledDate: delivery.scheduledAt,
       actualDate: delivery.completedAt,
       driverName: delivery.contactName,
-      notes: delivery.notes
+      notes: delivery.notes,
+      rental: delivery.rental // Include the full rental data for the frontend
     }));
 
     res.json({ deliveries: transformedDeliveries });
@@ -910,17 +918,21 @@ router.get('/reports/deliveries', async (req, res) => {
                 firstName: true,
                 lastName: true
               }
+            },
+            items: {
+              include: {
+                product: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
             }
-          }
-        },
-        product: {
-          select: {
-            name: true
           }
         }
       },
       orderBy: {
-        scheduledDate: 'desc'
+        scheduledAt: 'desc'
       }
     });
 
@@ -928,13 +940,14 @@ router.get('/reports/deliveries', async (req, res) => {
       id: delivery.id,
       rentalId: delivery.rentalId,
       customerName: delivery.rental?.customer ? `${delivery.rental.customer.firstName || 'Unknown'} ${delivery.rental.customer.lastName || 'Customer'}` : 'Unknown Customer',
-      productName: 'Product', // Simplified since product is not directly related to delivery
-      quantity: 1, // Default quantity
+      productName: delivery.rental?.items?.[0]?.product?.name || 'Product',
+      quantity: delivery.rental?.items?.[0]?.quantity || 1,
       status: delivery.status,
       scheduledDate: delivery.scheduledAt,
       actualDate: delivery.completedAt,
       driverName: delivery.contactName,
-      notes: delivery.notes
+      notes: delivery.notes,
+      rental: delivery.rental // Include the full rental data for the frontend
     }));
 
     res.json({ deliveries: report });
@@ -1124,6 +1137,136 @@ router.get('/users', async (req, res) => {
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Create new rental order (Admin only)
+router.post('/rentals', async (req, res) => {
+  try {
+    console.log('Admin creating new rental:', JSON.stringify(req.body, null, 2));
+    
+    const { 
+      customerId, 
+      startDate, 
+      endDate, 
+      pickupAddress, 
+      returnAddress, 
+      notes 
+    } = req.body;
+    
+    // Validate required fields
+    if (!customerId || !startDate || !endDate) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        message: 'Customer, start date, and end date are required' 
+      });
+    }
+    
+    // Generate unique order number
+    const orderNumber = `RENT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
+    // Get customer details
+    const customer = await prisma.user.findUnique({
+      where: { id: customerId },
+      select: { firstName: true, lastName: true, email: true }
+    });
+    
+    if (!customer) {
+      return res.status(400).json({ 
+        error: 'Customer not found',
+        message: 'Invalid customer ID' 
+      });
+    }
+    
+    const customerName = `${customer.firstName} ${customer.lastName}`;
+    
+    // Calculate rental duration and basic pricing
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // For now, create a basic rental with placeholder values
+    // In a real app, you'd calculate actual pricing based on products
+    const baseAmount = 100; // Placeholder base amount
+    const totalAmount = baseAmount * duration;
+    
+    // Create the rental order
+    const rental = await prisma.rental.create({
+      data: {
+        orderNumber,
+        customerId,
+        customerName,
+        status: 'QUOTATION',
+        startDate: start,
+        endDate: end,
+        pickupAddress: pickupAddress || 'To be determined',
+        returnAddress: returnAddress || 'To be determined',
+        notes: notes || '',
+        subtotal: totalAmount,
+        tax: 0,
+        totalAmount: totalAmount,
+        invoiceStatus: 'NOTHING_TO_INVOICE',
+        items: {
+          create: [
+            {
+              productId: 'cme7rgvcy000q7c198s846lhq', // Use a real product ID from database
+              productName: 'Professional Drill Set',
+              startDate: start,
+              endDate: end,
+              quantity: 1,
+              rentalType: 'DAILY',
+              unitPrice: baseAmount,
+              totalPrice: totalAmount,
+              notes: 'Basic rental service',
+              invoiceStatus: 'NOTHING_TO_INVOICE'
+            }
+          ]
+        }
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        items: true
+      }
+    });
+    
+    console.log('Rental created successfully:', rental.id);
+    
+    res.status(201).json({
+      message: 'Rental order created successfully',
+      rental: {
+        id: rental.id,
+        orderNumber: rental.orderNumber,
+        customer: rental.customer,
+        status: rental.status,
+        startDate: rental.startDate,
+        endDate: rental.endDate,
+        pickupAddress: rental.pickupAddress,
+        returnAddress: rental.returnAddress,
+        notes: rental.notes,
+        subtotal: rental.subtotal,
+        tax: rental.tax,
+        totalAmount: rental.totalAmount,
+        securityDeposit: rental.securityDeposit || 0,
+        invoiceStatus: rental.invoiceStatus,
+        createdAt: rental.createdAt,
+        updatedAt: rental.updatedAt,
+        items: rental.items || []
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error creating rental:', error);
+    res.status(500).json({ 
+      error: 'Failed to create rental order',
+      message: error.message 
+    });
   }
 });
 

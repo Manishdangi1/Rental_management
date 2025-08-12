@@ -71,6 +71,12 @@ interface Product {
   isRentable: boolean;
   isActive: boolean;
   isSeasonal: boolean;
+  rentalInstructions?: string;
+  setupRequirements?: string;
+  returnRequirements?: string;
+  damagePolicy?: string;
+  insuranceRequired?: boolean;
+  insuranceAmount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -99,6 +105,8 @@ const AdminProducts: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [viewDetailsDialog, setViewDetailsDialog] = useState(false);
+  const [selectedProductForView, setSelectedProductForView] = useState<Product | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -588,7 +596,10 @@ const AdminProducts: React.FC = () => {
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 0.5 }}>
                         <Tooltip title="View Details">
-                          <IconButton size="small" onClick={() => navigate(`/admin/products/${product.id}`)}>
+                          <IconButton size="small" onClick={() => {
+                            setSelectedProductForView(product);
+                            setViewDetailsDialog(true);
+                          }}>
                             <Visibility />
                           </IconButton>
                         </Tooltip>
@@ -628,6 +639,168 @@ const AdminProducts: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+
+      {/* View Details Dialog */}
+      <Dialog open={viewDetailsDialog} onClose={() => setViewDetailsDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Product Details
+          {selectedProductForView?.name && (
+            <Typography variant="subtitle1" color="text.secondary" sx={{ mt: 1 }}>
+              {selectedProductForView.name}
+            </Typography>
+          )}
+        </DialogTitle>
+        <DialogContent>
+          {selectedProductForView && (
+            <Box sx={{ pt: 2 }}>
+              <Grid container spacing={3}>
+                {/* Basic Information */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>
+                    Basic Information
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Name:</strong> {selectedProductForView.name}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>SKU:</strong> {selectedProductForView.sku}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Category:</strong> {selectedProductForView.category?.name || 'Uncategorized'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Description:</strong> {selectedProductForView.description || 'No description available'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* Inventory Information */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>
+                    Inventory Information
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Total Quantity:</strong> {selectedProductForView.totalQuantity || 0}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Available Quantity:</strong> {selectedProductForView.availableQuantity || 0}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Base Price:</strong> ${selectedProductForView.basePrice?.toFixed(2) || '0.00'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* Rental Configuration */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>
+                    Rental Configuration
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Minimum Rental Days:</strong> {selectedProductForView.minimumRentalDays || 1}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Maximum Rental Days:</strong> {selectedProductForView.maximumRentalDays || 30}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Rentable:</strong> {selectedProductForView.isRentable ? 'Yes' : 'No'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* Status Information */}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom>
+                    Status Information
+                  </Typography>
+                  <Box sx={{ pl: 2 }}>
+                    <Typography variant="body2">
+                      <strong>Active:</strong> {selectedProductForView.isActive ? 'Yes' : 'No'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Seasonal:</strong> {selectedProductForView.isSeasonal ? 'Yes' : 'No'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Created:</strong> {selectedProductForView.createdAt ? new Date(selectedProductForView.createdAt).toLocaleDateString() : 'Unknown'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Last Updated:</strong> {selectedProductForView.updatedAt ? new Date(selectedProductForView.updatedAt).toLocaleDateString() : 'Unknown'}
+                    </Typography>
+                  </Box>
+                </Grid>
+
+                {/* Additional Details */}
+                {selectedProductForView.rentalInstructions && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      Rental Instructions
+                    </Typography>
+                    <Typography variant="body2" sx={{ pl: 2 }}>
+                      {selectedProductForView.rentalInstructions}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {selectedProductForView.setupRequirements && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      Setup Requirements
+                    </Typography>
+                    <Typography variant="body2" sx={{ pl: 2 }}>
+                      {selectedProductForView.setupRequirements}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {selectedProductForView.returnRequirements && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      Return Requirements
+                    </Typography>
+                    <Typography variant="body2" sx={{ pl: 2 }}>
+                      {selectedProductForView.returnRequirements}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {selectedProductForView.damagePolicy && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      Damage Policy
+                    </Typography>
+                    <Typography variant="body2" sx={{ pl: 2 }}>
+                      {selectedProductForView.damagePolicy}
+                    </Typography>
+                  </Grid>
+                )}
+
+                {/* Insurance Information */}
+                {selectedProductForView.insuranceRequired && (
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>
+                      Insurance Information
+                    </Typography>
+                    <Box sx={{ pl: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Insurance Required:</strong> Yes
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Insurance Amount:</strong> ${selectedProductForView.insuranceAmount?.toFixed(2) || '0.00'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDetailsDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Product Dialog */}
       <Dialog 

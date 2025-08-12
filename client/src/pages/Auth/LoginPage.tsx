@@ -135,8 +135,44 @@ const LoginPage: React.FC = () => {
             >
               Welcome Back
             </Typography>
-            <Typography variant="body1" color="text.secondary">
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
               Sign in to your account to continue
+            </Typography>
+            <Typography variant="h6" color="primary.main" sx={{ fontWeight: 600, mb: 2 }}>
+              Sign in as:
+            </Typography>
+            <RadioGroup
+              row
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              sx={{ justifyContent: 'space-around', mb: 2 }}
+            >
+              <FormControlLabel
+                value="CUSTOMER"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Person fontSize="small" />
+                    Customer
+                  </Box>
+                }
+              />
+              <FormControlLabel
+                value="ADMIN"
+                control={<Radio />}
+                label={
+                  <Box sx={{ display: 'center', alignItems: 'center', gap: 0.5 }}>
+                    <AdminPanelSettings fontSize="small" />
+                    Admin
+                  </Box>
+                }
+              />
+            </RadioGroup>
+            <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mb: 2, px: 2, lineHeight: 1.4 }}>
+              {formData.role === 'CUSTOMER' 
+                ? 'Sign in to access rental services and manage your equipment rentals' 
+                : 'Sign in to access internal rental management system for administrative operations'}
             </Typography>
           </Box>
 
@@ -240,41 +276,6 @@ const LoginPage: React.FC = () => {
                 },
               }}
             />
-
-            {/* Role Selection */}
-            <FormControl component="fieldset" fullWidth sx={{ mb: 3 }}>
-              <FormLabel component="legend" sx={{ mb: 1, textAlign: 'center' }}>
-                Sign in as:
-              </FormLabel>
-              <RadioGroup
-                row
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                sx={{ justifyContent: 'space-around' }}
-              >
-                <FormControlLabel
-                  value="CUSTOMER"
-                  control={<Radio />}
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <Person fontSize="small" />
-                      Customer
-                    </Box>
-                  }
-                />
-                <FormControlLabel
-                  value="ADMIN"
-                  control={<Radio />}
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      <AdminPanelSettings fontSize="small" />
-                      Admin
-                    </Box>
-                  }
-                />
-              </RadioGroup>
-            </FormControl>
 
             {/* Remember Me Toggle */}
             <FormControlLabel

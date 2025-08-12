@@ -117,8 +117,6 @@ function App() {
                       {/* Public Routes */}
                       <Route path="/" element={<HomePage />} />
                       <Route path="/home" element={<HomePage />} />
-                      <Route path="/products" element={<ProductsPage />} />
-                      <Route path="/products/:id" element={<ProductDetailPage />} />
                       
                       {/* Authentication Routes */}
                       <Route path="/login" element={<LoginPage />} />
@@ -208,6 +206,32 @@ function App() {
                             <SidebarProvider>
                               <CustomerLayout>
                                 <CustomerNotifications />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      
+                      {/* Protected Product Routes */}
+                      <Route
+                        path="/products"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <ProductsPage />
+                              </CustomerLayout>
+                            </SidebarProvider>
+                          </RoleGuard>
+                        }
+                      />
+                      <Route
+                        path="/products/:id"
+                        element={
+                          <RoleGuard allowedRoles={['CUSTOMER']}>
+                            <SidebarProvider>
+                              <CustomerLayout>
+                                <ProductDetailPage />
                               </CustomerLayout>
                             </SidebarProvider>
                           </RoleGuard>

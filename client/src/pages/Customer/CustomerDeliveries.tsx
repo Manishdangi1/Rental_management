@@ -111,7 +111,7 @@ const CustomerDeliveries: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const response = await api.get('/deliveries');
+      const response = await api.get('/customer/deliveries');
       setDeliveries(response.data || []);
     } catch (error: any) {
       console.error('Error loading deliveries:', error);
@@ -228,22 +228,28 @@ const CustomerDeliveries: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
             bgcolor: 'primary.50',
+            height: '100%',
             '&:hover': {
-              boxShadow: theme.shadows[4],
-              transform: 'translateY(-2px)',
-              transition: 'all 0.3s ease-in-out'
+              boxShadow: theme.shadows[6],
+              transform: 'translateY(-4px)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
-                  <LocalShipping />
+                <Avatar sx={{ 
+                  bgcolor: 'primary.main',
+                  width: 56,
+                  height: 56,
+                  boxShadow: theme.shadows[2]
+                }}>
+                  <LocalShipping sx={{ fontSize: 28 }} />
                 </Avatar>
-                <Box>
-                  <Typography variant="h6" color="primary.main">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h4" color="primary.main" fontWeight="bold">
                     {(deliveries || []).length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     Total Deliveries
                   </Typography>
                 </Box>
@@ -254,22 +260,28 @@ const CustomerDeliveries: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
             bgcolor: 'info.50',
+            height: '100%',
             '&:hover': {
-              boxShadow: theme.shadows[4],
-              transform: 'translateY(-2px)',
-              transition: 'all 0.3s ease-in-out'
+              boxShadow: theme.shadows[6],
+              transform: 'translateY(-4px)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
-                  <Schedule />
+                <Avatar sx={{ 
+                  bgcolor: 'info.main',
+                  width: 56,
+                  height: 56,
+                  boxShadow: theme.shadows[2]
+                }}>
+                  <Schedule sx={{ fontSize: 28 }} />
                 </Avatar>
-                <Box>
-                  <Typography variant="h6" color="info.main">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h4" color="info.main" fontWeight="bold">
                     {upcomingCount}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     Upcoming
                   </Typography>
                 </Box>
@@ -280,22 +292,28 @@ const CustomerDeliveries: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
             bgcolor: 'success.50',
+            height: '100%',
             '&:hover': {
-              boxShadow: theme.shadows[4],
-              transform: 'translateY(-2px)',
-              transition: 'all 0.3s ease-in-out'
+              boxShadow: theme.shadows[6],
+              transform: 'translateY(-4px)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
-                  <CheckCircle />
+                <Avatar sx={{ 
+                  bgcolor: 'success.main',
+                  width: 56,
+                  height: 56,
+                  boxShadow: theme.shadows[2]
+                }}>
+                  <CheckCircle sx={{ fontSize: 28 }} />
                 </Avatar>
-                <Box>
-                  <Typography variant="h6" color="success.main">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h4" color="success.main" fontWeight="bold">
                     {completedCount}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     Completed
                   </Typography>
                 </Box>
@@ -306,22 +324,28 @@ const CustomerDeliveries: React.FC = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ 
             bgcolor: 'warning.50',
+            height: '100%',
             '&:hover': {
-              boxShadow: theme.shadows[4],
-              transform: 'translateY(-2px)',
-              transition: 'all 0.3s ease-in-out'
+              boxShadow: theme.shadows[6],
+              transform: 'translateY(-4px)',
+              transition: 'all 0.3s cubic-bezier(0.2, 0, 0.2, 1)'
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
-                  <DirectionsCar />
+                <Avatar sx={{ 
+                  bgcolor: 'warning.main',
+                  width: 56,
+                  height: 56,
+                  boxShadow: theme.shadows[2]
+                }}>
+                  <DirectionsCar sx={{ fontSize: 28 }} />
                 </Avatar>
-                <Box>
-                  <Typography variant="h6" color="warning.main">
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="h4" color="warning.main" fontWeight="bold">
                     {(deliveries || []).filter(d => d.type === 'PICKUP').length}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                     Pickups
                   </Typography>
                 </Box>
@@ -332,17 +356,34 @@ const CustomerDeliveries: React.FC = () => {
       </Grid>
 
       {/* Filters and Search */}
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ 
+        p: 3, 
+        mb: 3,
+        bgcolor: 'primary.50',
+        border: '1px solid',
+        borderColor: 'primary.100'
+      }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              placeholder="Search deliveries..."
+              placeholder="Search by order number, tracking, driver, or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+                sx: {
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                  },
+                }
               }}
+              size="medium"
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -352,21 +393,63 @@ const CustomerDeliveries: React.FC = () => {
                 value={filter}
                 label="Filter by Status"
                 onChange={(e: SelectChangeEvent) => setFilter(e.target.value as any)}
+                size="medium"
               >
-                <MenuItem value="all">All ({(deliveries || []).length})</MenuItem>
-                <MenuItem value="upcoming">Upcoming ({upcomingCount})</MenuItem>
-                <MenuItem value="completed">Completed ({completedCount})</MenuItem>
+                <MenuItem value="all">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography>All Deliveries</Typography>
+                    <Chip 
+                      label={(deliveries || []).length} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                    />
+                  </Box>
+                </MenuItem>
+                <MenuItem value="upcoming">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography>Upcoming</Typography>
+                    <Chip 
+                      label={upcomingCount} 
+                      size="small" 
+                      color="info" 
+                      variant="outlined"
+                    />
+                  </Box>
+                </MenuItem>
+                <MenuItem value="completed">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography>Completed</Typography>
+                    <Chip 
+                      label={completedCount} 
+                      size="small" 
+                      color="success" 
+                      variant="outlined"
+                    />
+                  </Box>
+                </MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} md={4}>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
               <Button
                 variant="outlined"
                 startIcon={<FilterList />}
-                onClick={() => setFilter('all')}
+                onClick={() => {
+                  setFilter('all');
+                  setSearchTerm('');
+                }}
+                sx={{
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderColor: 'primary.dark',
+                    backgroundColor: 'primary.50',
+                  }
+                }}
               >
-                Clear Filters
+                Clear All
               </Button>
             </Box>
           </Grid>
@@ -389,69 +472,95 @@ const CustomerDeliveries: React.FC = () => {
               }}
             >
               <CardContent>
-                <Grid container spacing={3} alignItems="center">
-                  {/* Status and Type */}
+                <Grid container spacing={3} alignItems="flex-start">
+                  {/* Status and Type - Mobile Responsive */}
                   <Grid item xs={12} sm={2}>
-                    <Box sx={{ textAlign: 'center' }}>
+                    <Box sx={{ 
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: isMobile ? 'row' : 'column',
+                      alignItems: 'center',
+                      gap: isMobile ? 2 : 0,
+                      mb: isMobile ? 0 : 2
+                    }}>
                       <Avatar
                         sx={{
                           bgcolor: `${getStatusColor(delivery.status)}.main`,
-                          width: 56,
-                          height: 56,
-                          mb: 1
+                          width: isMobile ? 40 : 56,
+                          height: isMobile ? 40 : 56,
+                          mb: isMobile ? 0 : 1
                         }}
                       >
                         {getTypeIcon(delivery.type)}
                       </Avatar>
-                      <Chip
-                        label={getStatusLabel(delivery.status)}
-                        color={getStatusColor(delivery.status) as any}
-                        size="small"
-                        sx={{ mb: 1 }}
-                      />
-                      <Chip
-                        label={delivery.type}
-                        color={getTypeColor(delivery.type) as any}
-                        variant="outlined"
-                        size="small"
-                      />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Chip
+                          label={getStatusLabel(delivery.status)}
+                          color={getStatusColor(delivery.status) as any}
+                          size="small"
+                        />
+                        <Chip
+                          label={delivery.type}
+                          color={getTypeColor(delivery.type) as any}
+                          variant="outlined"
+                          size="small"
+                        />
+                      </Box>
                     </Box>
                   </Grid>
 
-                  {/* Delivery Info */}
+                  {/* Delivery Info - Enhanced Layout */}
                   <Grid item xs={12} sm={4}>
-                    <Typography variant="h6" gutterBottom>
+                    <Typography variant="h6" gutterBottom sx={{ 
+                      fontSize: isMobile ? '1rem' : '1.25rem',
+                      wordBreak: 'break-word'
+                    }}>
                       {delivery.type} - {delivery.orderNumber}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      <CalendarToday sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                      {delivery.scheduledDate} at {delivery.scheduledTime}
-                    </Typography>
-                    {delivery.actualDate && (
-                      <Typography variant="body2" color="success.main" gutterBottom>
-                        <CheckCircle sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                        Actual: {delivery.actualDate} at {delivery.actualTime}
-                      </Typography>
-                    )}
-                    <Typography variant="body2" color="text.secondary">
-                      <AccessTime sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                      Est. Duration: {delivery.estimatedDuration}
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {delivery.scheduledDate} at {delivery.scheduledTime}
+                        </Typography>
+                      </Box>
+                      {delivery.actualDate && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                          <Typography variant="body2" color="success.main">
+                            Actual: {delivery.actualDate} at {delivery.actualTime}
+                          </Typography>
+                        </Box>
+                      )}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AccessTime sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          Est. Duration: {delivery.estimatedDuration}
+                        </Typography>
+                      </Box>
+                    </Box>
                   </Grid>
 
-                  {/* Items */}
+                  {/* Items - Improved Display */}
                   <Grid item xs={12} sm={3}>
                     <Typography variant="subtitle2" gutterBottom>
                       Items ({(delivery.items || []).length}):
                     </Typography>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {(delivery.items || []).map((item, index) => (
-                        <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box key={index} sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          p: 1,
+                          borderRadius: 1,
+                          bgcolor: 'grey.50'
+                        }}>
                           <Avatar
                             src={item.image}
                             sx={{ width: 24, height: 24 }}
                           />
-                          <Typography variant="body2">
+                          <Typography variant="body2" sx={{ flex: 1 }}>
                             {item.productName} x{item.quantity}
                           </Typography>
                         </Box>
@@ -459,40 +568,49 @@ const CustomerDeliveries: React.FC = () => {
                     </Box>
                   </Grid>
 
-                  {/* Driver Info */}
+                  {/* Driver Info - Enhanced */}
                   <Grid item xs={12} sm={2}>
                     <Typography variant="subtitle2" gutterBottom>
                       Driver:
                     </Typography>
-                    <Typography variant="body2" gutterBottom>
-                      {delivery.driver?.name || 'N/A'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {delivery.driver?.vehicle || 'N/A'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {delivery.driver?.licensePlate || 'N/A'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="body2" fontWeight="medium">
+                        {delivery.driver?.name || 'N/A'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {delivery.driver?.vehicle || 'N/A'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                        {delivery.driver?.licensePlate || 'N/A'}
+                      </Typography>
+                    </Box>
                   </Grid>
 
-                  {/* Actions */}
+                  {/* Actions - Responsive Layout */}
                   <Grid item xs={12} sm={1}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: isMobile ? 'row' : 'column', 
+                      gap: 1,
+                      justifyContent: isMobile ? 'center' : 'flex-start'
+                    }}>
                       <IconButton
                         color="primary"
                         onClick={() => handleViewDetails(delivery)}
                         title="View Details"
+                        size={isMobile ? 'medium' : 'small'}
                       >
                         <Visibility />
                       </IconButton>
                       <Button
                         variant="outlined"
-                        size="small"
+                        size={isMobile ? 'medium' : 'small'}
                         startIcon={<Phone />}
                         onClick={() => delivery.driver?.phone && handleContactDriver(delivery.driver.phone)}
                         disabled={!delivery.driver?.phone}
+                        sx={{ minWidth: isMobile ? 'auto' : '120px' }}
                       >
-                        Contact Driver
+                        {isMobile ? 'Call' : 'Contact Driver'}
                       </Button>
                     </Box>
                   </Grid>

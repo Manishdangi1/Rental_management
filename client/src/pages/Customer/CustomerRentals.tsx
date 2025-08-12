@@ -37,14 +37,13 @@ import {
 import {
   Search,
   FilterList,
-  Visibility,
   Receipt,
   LocalShipping,
   Payment,
   CalendarToday,
   AttachMoney
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+
 
 interface CustomerRental {
   id: string;
@@ -64,7 +63,6 @@ interface CustomerRental {
 }
 
 const CustomerRentals: React.FC = () => {
-  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -227,9 +225,7 @@ const CustomerRentals: React.FC = () => {
     setPage(0);
   };
 
-  const handleViewRental = (rentalId: string) => {
-    navigate(`/customer/rentals/${rentalId}`);
-  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -418,7 +414,6 @@ const CustomerRentals: React.FC = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>Amount</TableCell>
                 <TableCell>Payment</TableCell>
-                <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -472,15 +467,7 @@ const CustomerRentals: React.FC = () => {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell align="right">
-                      <IconButton
-                        size="small"
-                        onClick={() => handleViewRental(rental.id)}
-                        title="View Details"
-                      >
-                        <Visibility />
-                      </IconButton>
-                    </TableCell>
+
                   </TableRow>
                 ))}
             </TableBody>
@@ -504,7 +491,7 @@ const CustomerRentals: React.FC = () => {
           </Typography>
           <Button 
             variant="contained" 
-            onClick={() => navigate('/products')}
+            onClick={() => window.location.href = '/products'}
             sx={{ mt: 2 }}
           >
             Browse Products

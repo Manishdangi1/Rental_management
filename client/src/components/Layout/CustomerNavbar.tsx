@@ -3,7 +3,6 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  Button,
   IconButton,
   Drawer,
   List,
@@ -27,8 +26,7 @@ import {
   Payment,
   Notifications,
   Person,
-  Logout,
-  Home
+  Logout
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -134,23 +132,6 @@ const CustomerNavbar: React.FC = () => {
           </Typography>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              color="inherit"
-              startIcon={<Home />}
-              onClick={() => navigate('/')}
-            >
-              Public Site
-            </Button>
-
-            <IconButton
-              color="inherit"
-              onClick={() => navigate('/customer/notifications')}
-            >
-              <Badge badgeContent={0} color="error">
-                <Notifications />
-              </Badge>
-            </IconButton>
-
             <IconButton
               onClick={handleProfileMenuOpen}
               sx={{ ml: 1 }}

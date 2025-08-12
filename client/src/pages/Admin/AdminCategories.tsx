@@ -70,79 +70,54 @@ const AdminCategories: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '', description: '' });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editCategory, setEditCategory] = useState({ name: '', description: '' });
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     loadCategories();
   }, []);
 
   useEffect(() => {
-    filterCategories();
-  }, [categories, searchTerm, statusFilter]);
+    // Debounce search to avoid too many API calls
+    const timeoutId = setTimeout(() => {
+      loadCategories();
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, statusFilter]);
 
   const loadCategories = async () => {
     try {
-      // Simulate API call
-      const mockCategories: Category[] = [
-        {
-          id: '1',
-          name: 'Outdoor & Camping',
-          description: 'Camping gear, tents, outdoor equipment',
-          slug: 'outdoor-camping',
-          isActive: true,
-          productCount: 25,
-          totalRevenue: 15680,
-          createdAt: '2023-01-01',
-          imageUrl: 'outdoor.jpg'
-        },
-        {
-          id: '2',
-          name: 'Party & Events',
-          description: 'Party supplies, decorations, event equipment',
-          slug: 'party-events',
-          isActive: true,
-          productCount: 18,
-          totalRevenue: 23450,
-          createdAt: '2023-01-15',
-          imageUrl: 'party.jpg'
-        },
-        {
-          id: '3',
-          name: 'Kitchen & Catering',
-          description: 'Kitchen equipment, catering supplies',
-          slug: 'kitchen-catering',
-          isActive: true,
-          productCount: 12,
-          totalRevenue: 8920,
-          createdAt: '2023-02-01',
-          imageUrl: 'kitchen.jpg'
-        },
-        {
-          id: '4',
-          name: 'Office & Business',
-          description: 'Office furniture, business equipment',
-          slug: 'office-business',
-          isActive: false,
-          productCount: 8,
-          totalRevenue: 3450,
-          createdAt: '2023-02-15',
-          imageUrl: 'office.jpg'
-        },
-        {
-          id: '5',
-          name: 'Tools & Equipment',
-          description: 'Construction tools, power equipment',
-          slug: 'tools-equipment',
-          isActive: true,
-          productCount: 15,
-          totalRevenue: 12340,
-          createdAt: '2023-03-01',
-          imageUrl: 'tools.jpg'
-        }
-      ];
+      setLoading(true);
       
-      setCategories(mockCategories);
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter !== 'all') params.append('status', statusFilter);
+      
+      const response = await fetch(`/api/categories/admin/list?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setCategories(data.categories || []);
+      setFilteredCategories(data.categories || []);
     } catch (error) {
       console.error('Error loading categories:', error);
+      // Fallback to empty array if API fails
+      setCategories([]);
+      setFilteredCategories([]);
     } finally {
       setLoading(false);
     }
@@ -199,17 +174,67 @@ const AdminCategories: React.FC = () => {
   };
 
   const handleViewCategory = () => {
-    if (selectedCategory) {
-      navigate(`/admin/categories/${selectedCategory.id}`);
-    }
+    // For now, just show the category info in the menu
+    // In the future, this could open a detailed view dialog
     handleMenuClose();
   };
 
   const handleEditCategory = () => {
     if (selectedCategory) {
-      navigate(`/admin/categories/${selectedCategory.id}/edit`);
+      setEditCategory({
+        name: selectedCategory.name,
+        description: selectedCategory.description || ''
+      });
+      setEditDialogOpen(true);
     }
     handleMenuClose();
+  };
+
+  const handleUpdateCategory = async () => {
+    if (!editCategory.name.trim() || !selectedCategory) {
+      alert('Category name is required');
+      return;
+    }
+
+    try {
+      setEditLoading(true);
+      const response = await fetch(`/api/categories/${selectedCategory.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(editCategory)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const updatedCategory = await response.json();
+      
+      // Update local state
+      setCategories(categories.map(cat => 
+        cat.id === selectedCategory.id 
+          ? { ...cat, name: updatedCategory.name, description: updatedCategory.description }
+          : cat
+      ));
+      setFilteredCategories(filteredCategories.map(cat => 
+        cat.id === selectedCategory.id 
+          ? { ...cat, name: updatedCategory.name, description: updatedCategory.description }
+          : cat
+      ));
+      
+      // Close dialog and reset
+      setEditDialogOpen(false);
+      setSelectedCategory(null);
+      setEditCategory({ name: '', description: '' });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      alert('Failed to update category. Please try again.');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleToggleStatus = () => {
@@ -222,23 +247,106 @@ const AdminCategories: React.FC = () => {
     handleMenuClose();
   };
 
-  const confirmStatusChange = () => {
+  const confirmStatusChange = async () => {
     if (selectedCategory) {
-      setCategories(categories.map(category => 
-        category.id === selectedCategory.id 
-          ? { ...category, isActive: !category.isActive }
-          : category
-      ));
-      setStatusChangeDialogOpen(false);
-      setSelectedCategory(null);
+      try {
+        const response = await fetch(`/api/categories/${selectedCategory.id}/toggle-status`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const updatedCategory = await response.json();
+        
+        // Update local state
+        setCategories(categories.map(category => 
+          category.id === selectedCategory.id 
+            ? { ...category, isActive: updatedCategory.isActive }
+            : category
+        ));
+        
+        setStatusChangeDialogOpen(false);
+        setSelectedCategory(null);
+      } catch (error) {
+        console.error('Error toggling category status:', error);
+        alert('Failed to update category status. Please try again.');
+      }
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedCategory) {
-      setCategories(categories.filter(c => c.id !== selectedCategory.id));
-      setDeleteDialogOpen(false);
-      setSelectedCategory(null);
+      try {
+        const response = await fetch(`/api/categories/${selectedCategory.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 400 && errorData.productCount > 0) {
+            alert(`Cannot delete category. It contains ${errorData.productCount} products.`);
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return;
+        }
+        
+        // Remove from local state
+        setCategories(categories.filter(c => c.id !== selectedCategory.id));
+        setDeleteDialogOpen(false);
+        setSelectedCategory(null);
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        alert('Failed to delete category. Please try again.');
+      }
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategory.name.trim()) {
+      alert('Category name is required');
+      return;
+    }
+
+    try {
+      setCreateLoading(true);
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newCategory)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const createdCategory = await response.json();
+      
+      // Add to local state
+      setCategories([createdCategory, ...categories]);
+      setFilteredCategories([createdCategory, ...filteredCategories]);
+      
+      // Reset form and close dialog
+      setNewCategory({ name: '', description: '' });
+      setCreateDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      alert('Failed to create category. Please try again.');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -262,11 +370,15 @@ const AdminCategories: React.FC = () => {
     );
   }
 
-  return (
-    <Box sx={{ flexGrow: 1, p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Category Management</Typography>
+  if (categories.length === 0 && !loading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          No categories found
+        </Typography>
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          {searchTerm || statusFilter !== 'all' ? 'Try adjusting your search or filters' : 'Get started by creating your first category'}
+        </Typography>
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -274,6 +386,31 @@ const AdminCategories: React.FC = () => {
         >
           Add New Category
         </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ flexGrow: 1, p: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">Category Management</Typography>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={loadCategories}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            Add New Category
+          </Button>
+        </Box>
       </Box>
 
       {/* Stats Cards */}
@@ -529,6 +666,80 @@ const AdminCategories: React.FC = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Category Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Category</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              fullWidth
+              label="Category Name"
+              value={editCategory.name}
+              onChange={(e) => setEditCategory({ ...editCategory, name: e.target.value })}
+              placeholder="Enter category name"
+              sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              value={editCategory.description}
+              onChange={(e) => setEditCategory({ ...editCategory, description: e.target.value })}
+              placeholder="Enter category description (optional)"
+              multiline
+              rows={3}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleUpdateCategory} 
+            variant="contained"
+            disabled={editLoading || !editCategory.name.trim()}
+          >
+            {editLoading ? 'Updating...' : 'Update Category'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Category Dialog */}
+      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Create New Category</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <TextField
+              fullWidth
+              label="Category Name"
+              value={newCategory.name}
+              onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+              placeholder="Enter category name"
+              sx={{ mb: 2 }}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Description"
+              value={newCategory.description}
+              onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+              placeholder="Enter category description (optional)"
+              multiline
+              rows={3}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleCreateCategory} 
+            variant="contained"
+            disabled={createLoading || !newCategory.name.trim()}
+          >
+            {createLoading ? 'Creating...' : 'Create Category'}
           </Button>
         </DialogActions>
       </Dialog>
